@@ -1,0 +1,27 @@
+# --- Sistema ---
+.DS_Store
+Thumbs.db
+
+# --- VS Code ---
+.vscode/
+
+# --- Logs ---
+*.log
+
+# --- Variables de entorno ---
+.env
+.env.*
+
+# --- Dependencias comunes ---
+node_modules/
+dist/
+build/
+
+# --- Python ---
+__pycache__/
+*.pyc
+
+# --- Binarios ---
+*.exe
+*.dll
+*.o
