@@ -21,3 +21,16 @@ La tecnologia principal del proyecto sera:
 - `PostgreSQL`
 
 El alcance del trabajo parte de un prototipo jugable completo y evoluciona hacia una plataforma docente mas solida, con mejor arquitectura, trazabilidad, estadisticas y despliegue reproducible.
+
+## Estado actual
+
+En este momento ya estan implementadas las primeras bases funcionales del proyecto:
+
+- estructura inicial de `Django`
+- modelo de usuario propio
+- persistencia local en base de datos durante el desarrollo
+- registro de usuarios
+- inicio y cierre de sesion
+- pagina de perfil para usuarios autenticados
+
+El siguiente bloque de trabajo sera el flujo de entrada a partida.

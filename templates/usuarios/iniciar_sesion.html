@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Pokervitoria | Iniciar sesion{% endblock %}
+
+{% block content %}
+<article>
+    <h1>Iniciar sesion</h1>
+    <p>Accede con tu nombre de usuario y tu contrasena.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Entrar</button>
+    </form>
+</article>
+{% endblock %}

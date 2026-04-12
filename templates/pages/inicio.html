@@ -6,5 +6,17 @@
 <section>
     <h1>Pokervitoria</h1>
     <p>Base inicial del TFG preparada para crecer hacia un poker online mantenible y bien documentado.</p>
+    {% if user.is_authenticated %}
+        <p>Has iniciado sesion como <strong>{{ user }}</strong>.</p>
+        <div class="acciones">
+            <a class="boton" href="{% url 'usuarios:perfil' %}">Ir a mi perfil</a>
+        </div>
+    {% else %}
+        <p>El primer flujo ya disponible es el de autenticacion: registro, inicio de sesion y cierre de sesion.</p>
+        <div class="acciones">
+            <a class="boton" href="{% url 'usuarios:registro' %}">Crear cuenta</a>
+            <a class="boton" href="{% url 'usuarios:iniciar_sesion' %}">Iniciar sesion</a>
+        </div>
+    {% endif %}
 </section>
 {% endblock %}

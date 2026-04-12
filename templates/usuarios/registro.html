@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Pokervitoria | Registro{% endblock %}
+
+{% block content %}
+<article>
+    <h1>Crear cuenta</h1>
+    <p>Este formulario crea un usuario nuevo y abre la sesion automaticamente.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Registrarme</button>
+    </form>
+</article>
+{% endblock %}
