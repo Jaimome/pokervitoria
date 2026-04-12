@@ -26,6 +26,11 @@ class EstadoMano(models.TextChoices):
     FINALIZADA = "finalizada", "Finalizada"
 
 
+class TipoAccion(models.TextChoices):
+    PASAR = "pasar", "Pasar"
+    RETIRARSE = "retirarse", "Retirarse"
+
+
 class PartidaPoker(models.Model):
     """
     Una instancia de partida representa el ciclo de vida de una mesa online.
@@ -66,17 +71,21 @@ class PartidaPoker(models.Model):
 
     @property
     def numero_jugadores(self) -> int:
-        return self.participaciones.count()
+        return self.participaciones.exclude(estado=EstadoParticipacion.SALIO).count()
 
     def obtener_primer_asiento_libre(self) -> int | None:
-        asientos_ocupados = set(self.participaciones.values_list("numero_asiento", flat=True))
+        asientos_ocupados = set(
+            self.participaciones.exclude(estado=EstadoParticipacion.SALIO).values_list(
+                "numero_asiento", flat=True
+            )
+        )
         for numero_asiento in range(1, self.maximo_jugadores + 1):
             if numero_asiento not in asientos_ocupados:
                 return numero_asiento
         return None
 
     def puede_iniciarse(self) -> bool:
-        return self.participaciones.count() >= 2 and not self.manos.filter(
+        return self.numero_jugadores >= 2 and not self.manos.filter(
             estado__in=[EstadoMano.PREPARANDO, EstadoMano.PREFLOP]
         ).exists()
 
@@ -107,6 +116,7 @@ class ParticipacionPartida(models.Model):
         choices=EstadoParticipacion.choices,
         default=EstadoParticipacion.UNIDO,
     )
+    activa_en_mano = models.BooleanField(default=False)
     unido_en = models.DateTimeField(auto_now_add=True)
     salio_en = models.DateTimeField(null=True, blank=True)
     es_ganador = models.BooleanField(default=False)
@@ -145,6 +155,20 @@ class ManoPoker(models.Model):
         choices=EstadoMano.choices,
         default=EstadoMano.PREPARANDO,
     )
+    turno_actual = models.ForeignKey(
+        ParticipacionPartida,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="turnos_actuales",
+    )
+    ganador = models.ForeignKey(
+        ParticipacionPartida,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="manos_ganadas_provisionalmente",
+    )
     cartas_comunitarias = models.CharField(max_length=50, blank=True)
     creada_en = models.DateTimeField(auto_now_add=True)
 
@@ -161,6 +185,9 @@ class ManoPoker(models.Model):
 
     def __str__(self) -> str:
         return f"Mano {self.numero_mano} de {self.partida.nombre}"
+
+    def participantes_activos(self):
+        return self.partida.participaciones.filter(activa_en_mano=True).order_by("numero_asiento")
 
 
 class CartaPrivada(models.Model):
@@ -198,3 +225,38 @@ class CartaPrivada(models.Model):
         """Devuelve el codigo corto de la carta con notacion en castellano."""
 
         return self.codigo
+
+
+class AccionMano(models.Model):
+    """Accion realizada por un jugador durante una mano."""
+
+    mano = models.ForeignKey(
+        ManoPoker,
+        on_delete=models.CASCADE,
+        related_name="acciones",
+    )
+    participacion = models.ForeignKey(
+        ParticipacionPartida,
+        on_delete=models.CASCADE,
+        related_name="acciones_en_manos",
+    )
+    tipo = models.CharField(
+        max_length=20,
+        choices=TipoAccion.choices,
+    )
+    orden = models.PositiveIntegerField()
+    creada_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["orden", "creada_en"]
+        verbose_name = "accion de mano"
+        verbose_name_plural = "acciones de mano"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["mano", "orden"],
+                name="orden_unico_accion_por_mano",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.get_tipo_display()} de {self.participacion.usuario}"

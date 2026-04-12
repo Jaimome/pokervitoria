@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.partidas.models import CartaPrivada, ManoPoker, ParticipacionPartida, PartidaPoker
+from apps.partidas.models import AccionMano, CartaPrivada, ManoPoker, ParticipacionPartida, PartidaPoker
 
 
 class ParticipacionPartidaEnLinea(admin.TabularInline):
@@ -46,3 +46,10 @@ class AdministradorManoPoker(admin.ModelAdmin):
 class AdministradorCartaPrivada(admin.ModelAdmin):
     list_display = ("mano", "participacion", "orden", "codigo")
     search_fields = ("mano__partida__nombre", "participacion__usuario__username", "codigo")
+
+
+@admin.register(AccionMano)
+class AdministradorAccionMano(admin.ModelAdmin):
+    list_display = ("mano", "participacion", "tipo", "orden", "creada_en")
+    list_filter = ("tipo",)
+    search_fields = ("mano__partida__nombre", "participacion__usuario__username")

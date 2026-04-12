@@ -13,6 +13,10 @@
     <div class="acciones">
         {% if ya_unido %}
             <span>Ya estas unido a esta partida.</span>
+            <form method="post" action="{% url 'partidas:abandonar' partida.pk %}">
+                {% csrf_token %}
+                <button type="submit">Salir de la partida</button>
+            </form>
         {% elif asiento_libre %}
             <form method="post" action="{% url 'partidas:unirse' partida.pk %}">
                 {% csrf_token %}
@@ -34,6 +38,10 @@
         <h2>Mano actual</h2>
         <p><strong>Numero de mano:</strong> {{ mano_actual.numero_mano }}</p>
         <p><strong>Estado de la mano:</strong> {{ mano_actual.get_estado_display }}</p>
+        <p><strong>Turno actual:</strong> {{ mano_actual.turno_actual.usuario|default:"Sin turno activo" }}</p>
+        {% if mano_actual.ganador %}
+            <p><strong>Ganador provisional de la mano:</strong> {{ mano_actual.ganador.usuario }}</p>
+        {% endif %}
 
         {% if cartas_privadas %}
             <p><strong>Tus cartas privadas:</strong></p>
@@ -44,6 +52,38 @@
             </ul>
         {% elif ya_unido %}
             <p>Todavia no tienes cartas privadas repartidas en esta mano.</p>
+        {% endif %}
+
+        {% if es_mi_turno and mano_actual.estado == "preflop" %}
+            <div class="acciones">
+                <form method="post" action="{% url 'partidas:accion' partida.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo_accion" value="pasar">
+                    <button type="submit">Pasar</button>
+                </form>
+                <form method="post" action="{% url 'partidas:accion' partida.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo_accion" value="retirarse">
+                    <button type="submit">Retirarse</button>
+                </form>
+            </div>
+        {% elif ya_unido and mano_actual.estado == "preflop" %}
+            <p>No es tu turno en este momento.</p>
+        {% endif %}
+
+        <h3>Acciones registradas</h3>
+        {% if acciones_recientes %}
+            <ul>
+                {% for accion in acciones_recientes %}
+                    <li>
+                        Turno {{ accion.orden }}:
+                        {{ accion.participacion.usuario }}
+                        - {{ accion.get_tipo_display }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Todavia no se ha registrado ninguna accion en esta mano.</p>
         {% endif %}
     {% endif %}
 

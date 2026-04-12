@@ -38,5 +38,9 @@ En este momento ya estan implementadas las primeras bases funcionales del proyec
 - vista de detalle de partida con participantes
 - inicio manual de una partida con al menos dos jugadores
 - reparto inicial de cartas privadas visible para cada jugador autenticado
+- turno actual visible dentro de la mano
+- acciones basicas de `pasar` y `retirarse`
+- cierre automatico de la mano si solo queda un jugador activo
+- salida manual de una partida para desbloquear sesiones de prueba
 
-El siguiente bloque de trabajo sera ampliar las reglas reales de la mano de poker.
+El siguiente bloque de trabajo sera ampliar las reglas reales de apuesta y las siguientes fases de la mano.
