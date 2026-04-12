@@ -36,5 +36,7 @@ En este momento ya estan implementadas las primeras bases funcionales del proyec
 - creacion de partidas desde navegador
 - union a una partida existente
 - vista de detalle de partida con participantes
+- inicio manual de una partida con al menos dos jugadores
+- reparto inicial de cartas privadas visible para cada jugador autenticado
 
-El siguiente bloque de trabajo sera empezar a dar comportamiento real a las partidas.
+El siguiente bloque de trabajo sera ampliar las reglas reales de la mano de poker.

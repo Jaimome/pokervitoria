@@ -21,8 +21,31 @@
         {% else %}
             <span>La partida esta completa.</span>
         {% endif %}
+        {% if puede_iniciarse %}
+            <form method="post" action="{% url 'partidas:iniciar' partida.pk %}">
+                {% csrf_token %}
+                <button type="submit">Iniciar partida</button>
+            </form>
+        {% endif %}
         <a class="boton" href="{% url 'partidas:lista' %}">Volver al listado</a>
     </div>
+
+    {% if mano_actual %}
+        <h2>Mano actual</h2>
+        <p><strong>Numero de mano:</strong> {{ mano_actual.numero_mano }}</p>
+        <p><strong>Estado de la mano:</strong> {{ mano_actual.get_estado_display }}</p>
+
+        {% if cartas_privadas %}
+            <p><strong>Tus cartas privadas:</strong></p>
+            <ul>
+                {% for carta in cartas_privadas %}
+                    <li>{{ carta.codigo_visible }}</li>
+                {% endfor %}
+            </ul>
+        {% elif ya_unido %}
+            <p>Todavia no tienes cartas privadas repartidas en esta mano.</p>
+        {% endif %}
+    {% endif %}
 
     <h2>Participantes</h2>
     {% if partida.participaciones.all %}

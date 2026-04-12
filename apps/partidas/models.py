@@ -2,6 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 class EstadoPartida(models.TextChoices):
@@ -17,6 +18,12 @@ class EstadoParticipacion(models.TextChoices):
     JUGANDO = "jugando", "Jugando"
     ELIMINADO = "eliminado", "Eliminado"
     SALIO = "salio", "Salio"
+
+
+class EstadoMano(models.TextChoices):
+    PREPARANDO = "preparando", "Preparando"
+    PREFLOP = "preflop", "Preflop"
+    FINALIZADA = "finalizada", "Finalizada"
 
 
 class PartidaPoker(models.Model):
@@ -68,6 +75,17 @@ class PartidaPoker(models.Model):
                 return numero_asiento
         return None
 
+    def puede_iniciarse(self) -> bool:
+        return self.participaciones.count() >= 2 and not self.manos.filter(
+            estado__in=[EstadoMano.PREPARANDO, EstadoMano.PREFLOP]
+        ).exists()
+
+    def iniciar_partida(self) -> None:
+        self.estado = EstadoPartida.EN_CURSO
+        if self.iniciada_en is None:
+            self.iniciada_en = timezone.now()
+        self.save(update_fields=["estado", "iniciada_en", "actualizada_en"])
+
 
 class ParticipacionPartida(models.Model):
     """Relacion entre un usuario y una partida concreta."""
@@ -111,3 +129,72 @@ class ParticipacionPartida(models.Model):
 
     def __str__(self) -> str:
         return f"{self.usuario} en {self.partida}"
+
+
+class ManoPoker(models.Model):
+    """Representa una mano concreta dentro de una partida."""
+
+    partida = models.ForeignKey(
+        PartidaPoker,
+        on_delete=models.CASCADE,
+        related_name="manos",
+    )
+    numero_mano = models.PositiveIntegerField()
+    estado = models.CharField(
+        max_length=20,
+        choices=EstadoMano.choices,
+        default=EstadoMano.PREPARANDO,
+    )
+    cartas_comunitarias = models.CharField(max_length=50, blank=True)
+    creada_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creada_en"]
+        verbose_name = "mano de poker"
+        verbose_name_plural = "manos de poker"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["partida", "numero_mano"],
+                name="numero_mano_unico_por_partida",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"Mano {self.numero_mano} de {self.partida.nombre}"
+
+
+class CartaPrivada(models.Model):
+    """Carta privada repartida a un jugador en una mano concreta."""
+
+    mano = models.ForeignKey(
+        ManoPoker,
+        on_delete=models.CASCADE,
+        related_name="cartas_privadas",
+    )
+    participacion = models.ForeignKey(
+        ParticipacionPartida,
+        on_delete=models.CASCADE,
+        related_name="cartas_privadas",
+    )
+    orden = models.PositiveSmallIntegerField()
+    codigo = models.CharField(max_length=3)
+
+    class Meta:
+        ordering = ["orden"]
+        verbose_name = "carta privada"
+        verbose_name_plural = "cartas privadas"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["mano", "participacion", "orden"],
+                name="carta_privada_unica_por_orden",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.codigo} para {self.participacion.usuario}"
+
+    @property
+    def codigo_visible(self) -> str:
+        """Devuelve el codigo corto de la carta con notacion en castellano."""
+
+        return self.codigo
