@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 
 
-class AuditConfig(AppConfig):
+class ConfiguracionNucleo(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.audit"
-    verbose_name = "Audit"
+    name = "apps.nucleo"
+    verbose_name = "Nucleo"
