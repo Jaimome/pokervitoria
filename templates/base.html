@@ -87,6 +87,19 @@
             flex-wrap: wrap;
             margin-top: 1rem;
         }
+
+        .mensaje {
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #e8f3ed;
+            border: 1px solid #b8d4c2;
+        }
+
+        .mensaje.error {
+            background: #fbe9e7;
+            border-color: #e0b4ad;
+        }
     </style>
 </head>
 <body>
@@ -94,6 +107,7 @@
         <nav>
             <a href="{% url 'nucleo:inicio' %}">Inicio</a>
             {% if user.is_authenticated %}
+                <a href="{% url 'partidas:lista' %}">Partidas</a>
                 <a href="{% url 'usuarios:perfil' %}">Perfil</a>
                 <form method="post" action="{% url 'usuarios:cerrar_sesion' %}">
                     {% csrf_token %}
@@ -106,6 +120,11 @@
         </nav>
     </header>
     <main>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="mensaje {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
         {% block content %}{% endblock %}
     </main>
 </body>

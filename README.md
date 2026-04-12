@@ -32,5 +32,9 @@ En este momento ya estan implementadas las primeras bases funcionales del proyec
 - registro de usuarios
 - inicio y cierre de sesion
 - pagina de perfil para usuarios autenticados
+- listado de partidas para usuarios autenticados
+- creacion de partidas desde navegador
+- union a una partida existente
+- vista de detalle de partida con participantes
 
-El siguiente bloque de trabajo sera el flujo de entrada a partida.
+El siguiente bloque de trabajo sera empezar a dar comportamiento real a las partidas.

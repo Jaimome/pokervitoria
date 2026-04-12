@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Pokervitoria | Partidas{% endblock %}
+
+{% block content %}
+<section>
+    <h1>Partidas disponibles</h1>
+    <p>Desde aqui puedes crear una partida nueva o entrar en una ya existente.</p>
+
+    <div class="acciones">
+        <a class="boton" href="{% url 'partidas:crear' %}">Crear partida</a>
+    </div>
+
+    {% if partidas %}
+        <ul>
+            {% for partida in partidas %}
+                <li>
+                    <strong>{{ partida.nombre }}</strong>
+                    - {{ partida.get_estado_display }}
+                    - {{ partida.numero_jugadores }}/{{ partida.maximo_jugadores }} jugadores
+                    - <a href="{% url 'partidas:detalle' partida.pk %}">Ver detalle</a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Todavia no hay partidas creadas.</p>
+    {% endif %}
+</section>
+{% endblock %}

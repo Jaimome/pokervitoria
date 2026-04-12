@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Pokervitoria | Crear partida{% endblock %}
+
+{% block content %}
+<article>
+    <h1>Crear partida</h1>
+    <p>Esta es una primera version del flujo de mesas. Todavia no inicia juego real.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Crear partida</button>
+    </form>
+</article>
+{% endblock %}

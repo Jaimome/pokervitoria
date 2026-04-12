@@ -9,6 +9,7 @@
     {% if user.is_authenticated %}
         <p>Has iniciado sesion como <strong>{{ user }}</strong>.</p>
         <div class="acciones">
+            <a class="boton" href="{% url 'partidas:lista' %}">Ver partidas</a>
             <a class="boton" href="{% url 'usuarios:perfil' %}">Ir a mi perfil</a>
         </div>
     {% else %}

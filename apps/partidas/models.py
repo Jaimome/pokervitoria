@@ -29,6 +29,13 @@ class PartidaPoker(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre = models.CharField(max_length=100)
+    creador = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="partidas_creadas",
+    )
     estado = models.CharField(
         max_length=20,
         choices=EstadoPartida.choices,
@@ -49,6 +56,17 @@ class PartidaPoker(models.Model):
 
     def __str__(self) -> str:
         return f"{self.nombre} ({self.get_estado_display()})"
+
+    @property
+    def numero_jugadores(self) -> int:
+        return self.participaciones.count()
+
+    def obtener_primer_asiento_libre(self) -> int | None:
+        asientos_ocupados = set(self.participaciones.values_list("numero_asiento", flat=True))
+        for numero_asiento in range(1, self.maximo_jugadores + 1):
+            if numero_asiento not in asientos_ocupados:
+                return numero_asiento
+        return None
 
 
 class ParticipacionPartida(models.Model):
