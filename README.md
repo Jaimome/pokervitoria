@@ -1,13 +1,23 @@
-# pokervitoria.es
+# Pokervitoria
 
-Plataforma didáctica transversal basada en un videojuego online (TFG - Ingeniería Informática, UFV).
+Pokervitoria es mi `TFG` de Ingenieria Informatica y consiste en el desarrollo de un videojuego online de `Texas Hold'em`.
 
-## Objetivo del proyecto
+El proyecto tiene un doble objetivo:
 
-Desarrollar y desplegar un sistema cliente-servidor completo (web) basado en un juego online, diseñado como **plataforma didáctica** para analizar de forma integrada:
+- construir un poker online funcional donde varios jugadores puedan registrarse, entrar, jugar partidas y consultar resultados
+- usar ese sistema como caso de estudio para distintas asignaturas de la carrera
 
-- Arquitectura cliente-servidor
-- Persistencia de datos
-- Seguridad
-- Diseño de interfaz
-- Ciclo de vida del software
+Eso significa que Pokervitoria no solo debe funcionar, sino que tambien debe ser:
+
+- mantenible
+- entendible
+- bien documentado
+- defendible a nivel academico
+
+La tecnologia principal del proyecto sera:
+
+- `Python`
+- `Django`
+- `PostgreSQL`
+
+El alcance del trabajo parte de un prototipo jugable completo y evoluciona hacia una plataforma docente mas solida, con mejor arquitectura, trazabilidad, estadisticas y despliegue reproducible.
