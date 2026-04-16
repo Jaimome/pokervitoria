@@ -23,11 +23,15 @@ class EstadoParticipacion(models.TextChoices):
 class EstadoMano(models.TextChoices):
     PREPARANDO = "preparando", "Preparando"
     PREFLOP = "preflop", "Preflop"
+    FLOP = "flop", "Flop"
+    TURN = "turn", "Turn"
+    RIVER = "river", "River"
     FINALIZADA = "finalizada", "Finalizada"
 
 
 class TipoAccion(models.TextChoices):
     PASAR = "pasar", "Pasar"
+    IGUALAR = "igualar", "Igualar"
     RETIRARSE = "retirarse", "Retirarse"
 
 
@@ -117,6 +121,8 @@ class ParticipacionPartida(models.Model):
         default=EstadoParticipacion.UNIDO,
     )
     activa_en_mano = models.BooleanField(default=False)
+    apuesta_en_ronda = models.PositiveIntegerField(default=0)
+    ha_actuado_en_ronda = models.BooleanField(default=False)
     unido_en = models.DateTimeField(auto_now_add=True)
     salio_en = models.DateTimeField(null=True, blank=True)
     es_ganador = models.BooleanField(default=False)
@@ -169,7 +175,10 @@ class ManoPoker(models.Model):
         blank=True,
         related_name="manos_ganadas_provisionalmente",
     )
+    bote_total = models.PositiveIntegerField(default=0)
+    apuesta_actual_ronda = models.PositiveIntegerField(default=0)
     cartas_comunitarias = models.CharField(max_length=50, blank=True)
+    mazo_restante = models.TextField(blank=True)
     creada_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -188,6 +197,11 @@ class ManoPoker(models.Model):
 
     def participantes_activos(self):
         return self.partida.participaciones.filter(activa_en_mano=True).order_by("numero_asiento")
+
+    def cartas_comunitarias_visibles(self) -> list[str]:
+        if not self.cartas_comunitarias:
+            return []
+        return [carta for carta in self.cartas_comunitarias.split(",") if carta]
 
 
 class CartaPrivada(models.Model):

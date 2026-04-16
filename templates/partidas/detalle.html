@@ -39,8 +39,19 @@
         <p><strong>Numero de mano:</strong> {{ mano_actual.numero_mano }}</p>
         <p><strong>Estado de la mano:</strong> {{ mano_actual.get_estado_display }}</p>
         <p><strong>Turno actual:</strong> {{ mano_actual.turno_actual.usuario|default:"Sin turno activo" }}</p>
+        <p><strong>Bote total:</strong> {{ mano_actual.bote_total }}</p>
+        <p><strong>Apuesta actual de la ronda:</strong> {{ mano_actual.apuesta_actual_ronda }}</p>
         {% if mano_actual.ganador %}
             <p><strong>Ganador provisional de la mano:</strong> {{ mano_actual.ganador.usuario }}</p>
+        {% endif %}
+
+        {% if cartas_comunitarias %}
+            <p><strong>Cartas comunitarias:</strong></p>
+            <ul>
+                {% for carta in cartas_comunitarias %}
+                    <li>{{ carta }}</li>
+                {% endfor %}
+            </ul>
         {% endif %}
 
         {% if cartas_privadas %}
@@ -56,18 +67,47 @@
 
         {% if es_mi_turno and mano_actual.estado == "preflop" %}
             <div class="acciones">
-                <form method="post" action="{% url 'partidas:accion' partida.pk %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="tipo_accion" value="pasar">
-                    <button type="submit">Pasar</button>
-                </form>
+                {% if apuesta_por_igualar == 0 %}
+                    <form method="post" action="{% url 'partidas:accion' partida.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="tipo_accion" value="pasar">
+                        <button type="submit">Pasar</button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{% url 'partidas:accion' partida.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="tipo_accion" value="igualar">
+                        <button type="submit">Igualar ({{ apuesta_por_igualar }})</button>
+                    </form>
+                {% endif %}
                 <form method="post" action="{% url 'partidas:accion' partida.pk %}">
                     {% csrf_token %}
                     <input type="hidden" name="tipo_accion" value="retirarse">
                     <button type="submit">Retirarse</button>
                 </form>
             </div>
-        {% elif ya_unido and mano_actual.estado == "preflop" %}
+        {% elif es_mi_turno and mano_actual.estado != "finalizada" %}
+            <div class="acciones">
+                {% if apuesta_por_igualar == 0 %}
+                    <form method="post" action="{% url 'partidas:accion' partida.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="tipo_accion" value="pasar">
+                        <button type="submit">Pasar</button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{% url 'partidas:accion' partida.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="tipo_accion" value="igualar">
+                        <button type="submit">Igualar ({{ apuesta_por_igualar }})</button>
+                    </form>
+                {% endif %}
+                <form method="post" action="{% url 'partidas:accion' partida.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo_accion" value="retirarse">
+                    <button type="submit">Retirarse</button>
+                </form>
+            </div>
+        {% elif ya_unido and mano_actual.estado != "finalizada" %}
             <p>No es tu turno en este momento.</p>
         {% endif %}
 
@@ -95,6 +135,8 @@
                     Asiento {{ participacion.numero_asiento }}:
                     {{ participacion.usuario }}
                     ({{ participacion.get_estado_display }})
+                    - fichas: {{ participacion.fichas }}
+                    - apuesta en ronda: {{ participacion.apuesta_en_ronda }}
                 </li>
             {% endfor %}
         </ul>

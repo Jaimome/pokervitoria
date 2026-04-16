@@ -22,25 +22,28 @@ La tecnologia principal del proyecto sera:
 
 El alcance del trabajo parte de un prototipo jugable completo y evoluciona hacia una plataforma docente mas solida, con mejor arquitectura, trazabilidad, estadisticas y despliegue reproducible.
 
-## Estado actual
+## Version actual
 
-En este momento ya estan implementadas las primeras bases funcionales del proyecto:
+La version actual del proyecto ya permite:
 
-- estructura inicial de `Django`
-- modelo de usuario propio
-- persistencia local en base de datos durante el desarrollo
-- registro de usuarios
-- inicio y cierre de sesion
-- pagina de perfil para usuarios autenticados
-- listado de partidas para usuarios autenticados
-- creacion de partidas desde navegador
-- union a una partida existente
-- vista de detalle de partida con participantes
-- inicio manual de una partida con al menos dos jugadores
-- reparto inicial de cartas privadas visible para cada jugador autenticado
-- turno actual visible dentro de la mano
-- acciones basicas de `pasar` y `retirarse`
-- cierre automatico de la mano si solo queda un jugador activo
-- salida manual de una partida para desbloquear sesiones de prueba
+- arrancar una aplicacion web funcional en `Django`
+- registrar usuarios
+- iniciar y cerrar sesion
+- mostrar el nombre mostrado del usuario autenticado en la navegacion
+- consultar un perfil autenticado
+- persistir usuarios, partidas, participaciones y manos en base de datos local
+- crear partidas desde navegador
+- ver el listado de partidas disponibles
+- unirse a una partida existente
+- salir de una partida y volver a entrar despues
+- ver el detalle de una mesa con sus participantes
+- iniciar una mano con al menos dos jugadores
+- repartir cartas privadas a cada jugador
+- publicar automaticamente ciega pequena y ciega grande
+- mostrar el turno actual
+- permitir acciones basicas de `pasar`, `igualar` y `retirarse`
+- avanzar automaticamente entre `preflop`, `flop`, `turn` y `river`
+- mostrar cartas comunitarias segun avanza la mano
+- cerrar automaticamente la mano si solo queda un jugador activo
 
-El siguiente bloque de trabajo sera ampliar las reglas reales de apuesta y las siguientes fases de la mano.
+El siguiente bloque de trabajo sera ampliar las apuestas reales y la resolucion completa del showdown.

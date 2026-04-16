@@ -74,6 +74,12 @@ class VistaDetallePartida(LoginRequiredMixin, DetailView):
             and participacion_actual
             and mano_actual.turno_actual_id == participacion_actual.id
         )
+        context["apuesta_por_igualar"] = (
+            max(0, mano_actual.apuesta_actual_ronda - participacion_actual.apuesta_en_ronda)
+            if mano_actual and participacion_actual
+            else 0
+        )
+        context["cartas_comunitarias"] = mano_actual.cartas_comunitarias_visibles() if mano_actual else []
         context["acciones_recientes"] = mano_actual.acciones.select_related(
             "participacion__usuario"
         ) if mano_actual else []
@@ -156,7 +162,7 @@ class VistaAccionPartida(LoginRequiredMixin, View):
             messages.error(request, "No se puede procesar la accion solicitada.")
             return redirect("partidas:detalle", pk=partida.pk)
 
-        if tipo_accion not in {TipoAccion.PASAR, TipoAccion.RETIRARSE}:
+        if tipo_accion not in {TipoAccion.PASAR, TipoAccion.IGUALAR, TipoAccion.RETIRARSE}:
             messages.error(request, "La accion indicada no es valida.")
             return redirect("partidas:detalle", pk=partida.pk)
 
