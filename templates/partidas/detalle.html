@@ -42,6 +42,7 @@
         <p><strong>Turno actual:</strong> {{ mano_actual.turno_actual.usuario|default:"Sin turno activo" }}</p>
         <p><strong>Bote total:</strong> {{ mano_actual.bote_total }}</p>
         <p><strong>Apuesta actual de la ronda:</strong> {{ mano_actual.apuesta_actual_ronda }}</p>
+        <p><strong>Subida minima actual:</strong> {{ mano_actual.incremento_minimo_subida }}</p>
         {% if mano_actual.ganador %}
             <p><strong>Ganador provisional de la mano:</strong> {{ mano_actual.ganador.usuario }}</p>
         {% endif %}
@@ -66,7 +67,7 @@
             <p>Todavia no tienes cartas privadas repartidas en esta mano.</p>
         {% endif %}
 
-        {% if es_mi_turno and mano_actual.estado == "preflop" %}
+        {% if es_mi_turno and mano_actual.estado != "finalizada" %}
             <div class="acciones">
                 {% if apuesta_por_igualar == 0 %}
                     <form method="post" action="{% url 'partidas:accion' partida.pk %}">
@@ -81,26 +82,25 @@
                         <button type="submit">Igualar ({{ apuesta_por_igualar }})</button>
                     </form>
                 {% endif %}
-                <form method="post" action="{% url 'partidas:accion' partida.pk %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="tipo_accion" value="retirarse">
-                    <button type="submit">Retirarse</button>
-                </form>
-            </div>
-        {% elif es_mi_turno and mano_actual.estado != "finalizada" %}
-            <div class="acciones">
-                {% if apuesta_por_igualar == 0 %}
+                {% if objetivo_maximo_subida >= objetivo_minimo_subida %}
                     <form method="post" action="{% url 'partidas:accion' partida.pk %}">
                         {% csrf_token %}
-                        <input type="hidden" name="tipo_accion" value="pasar">
-                        <button type="submit">Pasar</button>
+                        <input type="hidden" name="tipo_accion" value="subir">
+                        <label for="objetivo_subida">Subir hasta:</label>
+                        <input
+                            id="objetivo_subida"
+                            name="objetivo_subida"
+                            type="number"
+                            min="{{ objetivo_minimo_subida }}"
+                            max="{{ objetivo_maximo_subida }}"
+                            step="1"
+                            value="{{ objetivo_minimo_subida }}"
+                            required
+                        >
+                        <button type="submit">Subir</button>
                     </form>
                 {% else %}
-                    <form method="post" action="{% url 'partidas:accion' partida.pk %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="tipo_accion" value="igualar">
-                        <button type="submit">Igualar ({{ apuesta_por_igualar }})</button>
-                    </form>
+                    <p>No tienes fichas suficientes para realizar una subida legal.</p>
                 {% endif %}
                 <form method="post" action="{% url 'partidas:accion' partida.pk %}">
                     {% csrf_token %}
@@ -108,6 +108,13 @@
                     <button type="submit">Retirarse</button>
                 </form>
             </div>
+            <p>
+                {% if apuesta_por_igualar > 0 %}
+                    Te faltan {{ apuesta_por_igualar }} fichas por igualar.
+                {% else %}
+                    No tienes fichas pendientes por igualar en esta ronda.
+                {% endif %}
+            </p>
         {% elif ya_unido and mano_actual.estado != "finalizada" %}
             <p>No es tu turno en este momento.</p>
         {% endif %}

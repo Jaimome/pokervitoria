@@ -80,6 +80,16 @@ class VistaDetallePartida(LoginRequiredMixin, DetailView):
             if mano_actual and participacion_actual
             else 0
         )
+        context["objetivo_minimo_subida"] = (
+            mano_actual.apuesta_actual_ronda + mano_actual.incremento_minimo_subida
+            if mano_actual
+            else 0
+        )
+        context["objetivo_maximo_subida"] = (
+            participacion_actual.apuesta_en_ronda + participacion_actual.fichas
+            if participacion_actual
+            else 0
+        )
         context["cartas_comunitarias"] = mano_actual.cartas_comunitarias_visibles() if mano_actual else []
         context["acciones_recientes"] = mano_actual.acciones.select_related(
             "participacion__usuario"
@@ -165,12 +175,26 @@ class VistaAccionPartida(LoginRequiredMixin, View):
             messages.error(request, "No se puede procesar la accion solicitada.")
             return redirect("partidas:detalle", pk=partida.pk)
 
-        if tipo_accion not in {TipoAccion.PASAR, TipoAccion.IGUALAR, TipoAccion.RETIRARSE}:
+        if tipo_accion not in {
+            TipoAccion.PASAR,
+            TipoAccion.IGUALAR,
+            TipoAccion.SUBIR,
+            TipoAccion.RETIRARSE,
+        }:
             messages.error(request, "La accion indicada no es valida.")
             return redirect("partidas:detalle", pk=partida.pk)
 
+        objetivo_subida = None
+        if tipo_accion == TipoAccion.SUBIR:
+            objetivo_subida_texto = request.POST.get("objetivo_subida", "").strip()
+            try:
+                objetivo_subida = int(objetivo_subida_texto)
+            except ValueError:
+                messages.error(request, "Debes indicar una cantidad numerica valida para subir.")
+                return redirect("partidas:detalle", pk=partida.pk)
+
         try:
-            ejecutar_accion(mano, participacion, tipo_accion)
+            ejecutar_accion(mano, participacion, tipo_accion, objetivo_subida=objetivo_subida)
         except ValueError as error:
             messages.error(request, str(error))
             return redirect("partidas:detalle", pk=partida.pk)

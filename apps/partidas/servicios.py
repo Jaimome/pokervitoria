@@ -45,6 +45,7 @@ def iniciar_mano_inicial(partida: PartidaPoker) -> ManoPoker:
         numero_mano=partida.manos.count() + 1,
         estado=EstadoMano.PREFLOP,
         turno_actual=turno_inicial,
+        incremento_minimo_subida=partida.ciega_grande,
     )
 
     cartas_a_crear = []
@@ -74,12 +75,25 @@ def iniciar_mano_inicial(partida: PartidaPoker) -> ManoPoker:
     CartaPrivada.objects.bulk_create(cartas_a_crear)
     _publicar_ciegas(partida, mano, participantes)
     mano.mazo_restante = ",".join(mazo)
-    mano.save(update_fields=["bote_total", "apuesta_actual_ronda", "turno_actual", "mazo_restante"])
+    mano.save(
+        update_fields=[
+            "bote_total",
+            "apuesta_actual_ronda",
+            "turno_actual",
+            "mazo_restante",
+            "incremento_minimo_subida",
+        ]
+    )
     partida.iniciar_partida()
     return mano
 
 
-def ejecutar_accion(mano: ManoPoker, participacion: ParticipacionPartida, tipo: str) -> None:
+def ejecutar_accion(
+    mano: ManoPoker,
+    participacion: ParticipacionPartida,
+    tipo: str,
+    objetivo_subida: int | None = None,
+) -> None:
     """Ejecuta una accion de la ronda actual y actualiza turno o fase."""
 
     if mano.estado not in ORDEN_FASES:
@@ -109,6 +123,47 @@ def ejecutar_accion(mano: ManoPoker, participacion: ParticipacionPartida, tipo: 
         participacion.save(update_fields=["fichas", "apuesta_en_ronda", "ha_actuado_en_ronda"])
         mano.bote_total += diferencia
         mano.save(update_fields=["bote_total"])
+
+    elif tipo == TipoAccion.SUBIR:
+        if objetivo_subida is None:
+            raise ValueError("Debes indicar a cuanto quieres subir.")
+        if objetivo_subida <= mano.apuesta_actual_ronda:
+            raise ValueError("La subida debe superar la apuesta actual de la ronda.")
+
+        minimo_objetivo = mano.apuesta_actual_ronda + mano.incremento_minimo_subida
+        if objetivo_subida < minimo_objetivo:
+            raise ValueError(
+                f"La subida minima actual es hasta {minimo_objetivo} fichas."
+            )
+
+        diferencia = objetivo_subida - participacion.apuesta_en_ronda
+        if diferencia <= 0:
+            raise ValueError("La subida indicada no modifica tu apuesta actual.")
+        if participacion.fichas < diferencia:
+            raise ValueError("No tienes fichas suficientes para realizar esa subida.")
+
+        apuesta_previa = mano.apuesta_actual_ronda
+        incremento_realizado = objetivo_subida - apuesta_previa
+
+        participacion.fichas -= diferencia
+        participacion.apuesta_en_ronda = objetivo_subida
+        participacion.ha_actuado_en_ronda = True
+        participacion.save(update_fields=["fichas", "apuesta_en_ronda", "ha_actuado_en_ronda"])
+
+        for rival in mano.participantes_activos().exclude(id=participacion.id):
+            rival.ha_actuado_en_ronda = False
+            rival.save(update_fields=["ha_actuado_en_ronda"])
+
+        mano.bote_total += diferencia
+        mano.apuesta_actual_ronda = objetivo_subida
+        mano.incremento_minimo_subida = incremento_realizado
+        mano.save(
+            update_fields=[
+                "bote_total",
+                "apuesta_actual_ronda",
+                "incremento_minimo_subida",
+            ]
+        )
 
     elif tipo == TipoAccion.RETIRARSE:
         participacion.activa_en_mano = False
@@ -198,6 +253,7 @@ def _publicar_ciegas(
 
     mano.bote_total = partida.ciega_pequena + partida.ciega_grande
     mano.apuesta_actual_ronda = partida.ciega_grande
+    mano.incremento_minimo_subida = partida.ciega_grande
 
 
 def _cobrar_apuesta(cantidad: int, participacion: ParticipacionPartida) -> None:
@@ -244,6 +300,7 @@ def _avanzar_fase(mano: ManoPoker) -> None:
         participacion.save(update_fields=["apuesta_en_ronda", "ha_actuado_en_ronda"])
 
     mano.apuesta_actual_ronda = 0
+    mano.incremento_minimo_subida = mano.partida.ciega_grande
     mano.turno_actual = participantes_activos[0] if participantes_activos else None
     mano.save(
         update_fields=[
@@ -251,6 +308,7 @@ def _avanzar_fase(mano: ManoPoker) -> None:
             "cartas_comunitarias",
             "mazo_restante",
             "apuesta_actual_ronda",
+            "incremento_minimo_subida",
             "turno_actual",
         ]
     )

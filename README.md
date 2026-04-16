@@ -42,6 +42,7 @@ La version actual del proyecto ya permite:
 - publicar automaticamente ciega pequena y ciega grande
 - mostrar el turno actual
 - permitir acciones basicas de `pasar`, `igualar` y `retirarse`
+- permitir la accion de `subir` con una cantidad objetivo valida
 - avanzar automaticamente entre `preflop`, `flop`, `turn` y `river`
 - mostrar cartas comunitarias segun avanza la mano
 - cerrar automaticamente la mano si solo queda un jugador activo
@@ -60,6 +61,12 @@ En la version actual, cuando alguien:
 
 los navegadores que esten viendo esa misma mesa se actualizan automaticamente.
 
+En la mesa tambien se muestra ya:
+
+- cuanto falta por igualar en tu turno
+- cual es la subida minima legal en ese momento
+- un campo para indicar hasta que cantidad quieres subir
+
 Para facilitar las pruebas, la vista de detalle de partida muestra tambien un estado visible de conexion:
 
 - `Tiempo real: conectando...`
@@ -75,4 +82,4 @@ La version actual utiliza estas dependencias principales:
 - `Channels`
 - `Daphne`
 
-El siguiente bloque de trabajo sera ampliar las apuestas reales y la resolucion completa del showdown.
+El siguiente bloque de trabajo sera resolver el `showdown`, evaluar combinaciones reales y encadenar varias manos seguidas dentro de una misma partida.

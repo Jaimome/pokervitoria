@@ -32,6 +32,7 @@ class EstadoMano(models.TextChoices):
 class TipoAccion(models.TextChoices):
     PASAR = "pasar", "Pasar"
     IGUALAR = "igualar", "Igualar"
+    SUBIR = "subir", "Subir"
     RETIRARSE = "retirarse", "Retirarse"
 
 
@@ -89,8 +90,8 @@ class PartidaPoker(models.Model):
         return None
 
     def puede_iniciarse(self) -> bool:
-        return self.numero_jugadores >= 2 and not self.manos.filter(
-            estado__in=[EstadoMano.PREPARANDO, EstadoMano.PREFLOP]
+        return self.numero_jugadores >= 2 and not self.manos.exclude(
+            estado=EstadoMano.FINALIZADA
         ).exists()
 
     def iniciar_partida(self) -> None:
@@ -177,6 +178,7 @@ class ManoPoker(models.Model):
     )
     bote_total = models.PositiveIntegerField(default=0)
     apuesta_actual_ronda = models.PositiveIntegerField(default=0)
+    incremento_minimo_subida = models.PositiveIntegerField(default=0)
     cartas_comunitarias = models.CharField(max_length=50, blank=True)
     mazo_restante = models.TextField(blank=True)
     creada_en = models.DateTimeField(auto_now_add=True)

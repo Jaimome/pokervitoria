@@ -131,6 +131,7 @@ class FlujoPartidasTests(TestCase):
         self.assertEqual(mano.turno_actual, participacion_1)
         self.assertEqual(participacion_1.apuesta_en_ronda, 0)
         self.assertEqual(participacion_2.apuesta_en_ronda, 0)
+        self.assertEqual(mano.incremento_minimo_subida, partida.ciega_grande)
 
     def test_pasar_en_flop_avanza_el_turno_y_cierra_la_ronda(self):
         partida, mano, participacion_1, participacion_2 = self._crear_partida_iniciada()
@@ -245,6 +246,118 @@ class FlujoPartidasTests(TestCase):
             ParticipacionPartida.objects.filter(partida=partida, usuario=self.usuario).count(),
             1,
         )
+
+    def test_subir_actualiza_apuesta_bote_y_reabre_la_ronda(self):
+        partida = PartidaPoker.objects.create(
+            nombre="Mesa subida",
+            maximo_jugadores=5,
+            ciega_pequena=10,
+            ciega_grande=20,
+        )
+        participacion_1 = ParticipacionPartida.objects.create(
+            partida=partida,
+            usuario=self.usuario,
+            numero_asiento=1,
+            estado=EstadoParticipacion.UNIDO,
+        )
+        participacion_2 = ParticipacionPartida.objects.create(
+            partida=partida,
+            usuario=self.segundo_usuario,
+            numero_asiento=2,
+            estado=EstadoParticipacion.UNIDO,
+        )
+        participacion_3 = ParticipacionPartida.objects.create(
+            partida=partida,
+            usuario=self.tercer_usuario,
+            numero_asiento=3,
+            estado=EstadoParticipacion.UNIDO,
+        )
+        self.client.post(reverse("partidas:iniciar", kwargs={"pk": partida.pk}))
+        mano = ManoPoker.objects.get(partida=partida)
+
+        self.client.logout()
+        self.client.login(username="jugador3", password="ClaveSegura123!")
+        response = self.client.post(
+            reverse("partidas:accion", kwargs={"pk": partida.pk}),
+            data={"tipo_accion": "subir", "objetivo_subida": "60"},
+        )
+
+        self.assertRedirects(response, reverse("partidas:detalle", kwargs={"pk": partida.pk}))
+        mano.refresh_from_db()
+        participacion_1.refresh_from_db()
+        participacion_2.refresh_from_db()
+        participacion_3.refresh_from_db()
+        self.assertEqual(mano.turno_actual, participacion_1)
+        self.assertEqual(mano.apuesta_actual_ronda, 60)
+        self.assertEqual(mano.incremento_minimo_subida, 40)
+        self.assertEqual(mano.bote_total, 90)
+        self.assertEqual(participacion_3.apuesta_en_ronda, 60)
+        self.assertEqual(participacion_3.fichas, 940)
+        self.assertFalse(participacion_1.ha_actuado_en_ronda)
+        self.assertFalse(participacion_2.ha_actuado_en_ronda)
+
+    def test_no_se_permita_una_subida_por_debajo_del_minimo(self):
+        partida = PartidaPoker.objects.create(
+            nombre="Mesa subida invalida",
+            maximo_jugadores=5,
+            ciega_pequena=10,
+            ciega_grande=20,
+        )
+        ParticipacionPartida.objects.create(
+            partida=partida,
+            usuario=self.usuario,
+            numero_asiento=1,
+            estado=EstadoParticipacion.UNIDO,
+        )
+        ParticipacionPartida.objects.create(
+            partida=partida,
+            usuario=self.segundo_usuario,
+            numero_asiento=2,
+            estado=EstadoParticipacion.UNIDO,
+        )
+        participacion_3 = ParticipacionPartida.objects.create(
+            partida=partida,
+            usuario=self.tercer_usuario,
+            numero_asiento=3,
+            estado=EstadoParticipacion.UNIDO,
+        )
+        self.client.post(reverse("partidas:iniciar", kwargs={"pk": partida.pk}))
+        mano = ManoPoker.objects.get(partida=partida)
+
+        self.client.logout()
+        self.client.login(username="jugador3", password="ClaveSegura123!")
+        response = self.client.post(
+            reverse("partidas:accion", kwargs={"pk": partida.pk}),
+            data={"tipo_accion": "subir", "objetivo_subida": "30"},
+            follow=True,
+        )
+
+        mano.refresh_from_db()
+        participacion_3.refresh_from_db()
+        self.assertContains(response, "La subida minima actual es hasta 40 fichas.")
+        self.assertEqual(mano.apuesta_actual_ronda, 20)
+        self.assertEqual(mano.bote_total, 30)
+        self.assertEqual(mano.turno_actual, participacion_3)
+        self.assertEqual(participacion_3.apuesta_en_ronda, 0)
+        self.assertEqual(participacion_3.fichas, 1000)
+
+    def test_no_se_puede_iniciar_otra_mano_mientras_haya_una_activa(self):
+        partida, mano, participacion_1, participacion_2 = self._crear_partida_iniciada()
+        self.client.post(
+            reverse("partidas:accion", kwargs={"pk": partida.pk}),
+            data={"tipo_accion": "igualar"},
+        )
+        self.client.logout()
+        self.client.login(username="jugador2", password="ClaveSegura123!")
+        self.client.post(
+            reverse("partidas:accion", kwargs={"pk": partida.pk}),
+            data={"tipo_accion": "pasar"},
+        )
+
+        partida.refresh_from_db()
+        mano.refresh_from_db()
+        self.assertEqual(mano.estado, EstadoMano.FLOP)
+        self.assertFalse(partida.puede_iniciarse())
 
     def _crear_partida_iniciada(self):
         partida = PartidaPoker.objects.create(
