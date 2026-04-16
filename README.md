@@ -45,5 +45,34 @@ La version actual del proyecto ya permite:
 - avanzar automaticamente entre `preflop`, `flop`, `turn` y `river`
 - mostrar cartas comunitarias segun avanza la mano
 - cerrar automaticamente la mano si solo queda un jugador activo
+- refrescar en tiempo real el detalle de una partida cuando cambia su estado
+
+## Tiempo real
+
+La mesa de partida cuenta ya con una primera base de tiempo real mediante `WebSockets`.
+
+En la version actual, cuando alguien:
+
+- se une a una partida
+- sale de una partida
+- inicia una mano
+- realiza una accion
+
+los navegadores que esten viendo esa misma mesa se actualizan automaticamente.
+
+Para facilitar las pruebas, la vista de detalle de partida muestra tambien un estado visible de conexion:
+
+- `Tiempo real: conectando...`
+- `Tiempo real: conectado`
+- `Tiempo real: desconectado`
+- `Tiempo real: error de conexion`
+
+## Dependencias actuales
+
+La version actual utiliza estas dependencias principales:
+
+- `Django`
+- `Channels`
+- `Daphne`
 
 El siguiente bloque de trabajo sera ampliar las apuestas reales y la resolucion completa del showdown.

@@ -5,6 +5,7 @@
 {% block content %}
 <article>
     <h1>{{ partida.nombre }}</h1>
+    <p id="estado-tiempo-real"><strong>Tiempo real:</strong> conectando...</p>
     <p><strong>Estado:</strong> {{ partida.get_estado_display }}</p>
     <p><strong>Creador:</strong> {{ partida.creador|default:"No definido" }}</p>
     <p><strong>Ciegas:</strong> {{ partida.ciega_pequena }} / {{ partida.ciega_grande }}</p>
@@ -144,4 +145,36 @@
         <p>Todavia no se ha unido ningun jugador.</p>
     {% endif %}
 </article>
+<script>
+    (() => {
+        const partidaId = "{{ partida.pk }}";
+        const protocolo = window.location.protocol === "https:" ? "wss" : "ws";
+        const socket = new WebSocket(`${protocolo}://${window.location.host}/ws/partidas/${partidaId}/`);
+        let recargaProgramada = false;
+        const estadoTiempoReal = document.getElementById("estado-tiempo-real");
+
+        socket.addEventListener("open", () => {
+            estadoTiempoReal.innerHTML = "<strong>Tiempo real:</strong> conectado";
+        });
+
+        socket.addEventListener("message", (event) => {
+            const data = JSON.parse(event.data);
+            if (data.tipo === "refrescar_partida" && !recargaProgramada) {
+                recargaProgramada = true;
+                window.setTimeout(() => {
+                    window.location.reload();
+                }, 250);
+            }
+        });
+
+        socket.addEventListener("close", () => {
+            estadoTiempoReal.innerHTML = "<strong>Tiempo real:</strong> desconectado";
+            console.warn("Canal en tiempo real desconectado.");
+        });
+
+        socket.addEventListener("error", () => {
+            estadoTiempoReal.innerHTML = "<strong>Tiempo real:</strong> error de conexion";
+        });
+    })();
+</script>
 {% endblock %}

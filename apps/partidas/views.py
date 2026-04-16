@@ -16,6 +16,7 @@ from apps.partidas.models import (
     TipoAccion,
 )
 from apps.partidas.servicios import abandonar_partida, ejecutar_accion, iniciar_mano_inicial
+from apps.partidas.tiempo_real import notificar_cambio_partida
 
 
 class VistaListaPartidas(LoginRequiredMixin, ListView):
@@ -122,6 +123,7 @@ class VistaUnirsePartida(LoginRequiredMixin, View):
             messages.error(request, "No se ha podido unir el usuario a la partida.")
             return redirect("partidas:detalle", pk=partida.pk)
 
+        notificar_cambio_partida(partida.pk, "jugador_unido")
         messages.success(request, "Te has unido a la partida correctamente.")
         return redirect("partidas:detalle", pk=partida.pk)
 
@@ -141,6 +143,7 @@ class VistaIniciarPartida(LoginRequiredMixin, View):
             messages.error(request, str(error))
             return redirect("partidas:detalle", pk=partida.pk)
 
+        notificar_cambio_partida(partida.pk, "partida_iniciada")
         messages.success(request, "La partida se ha iniciado y ya se han repartido las cartas privadas.")
         return redirect("partidas:detalle", pk=partida.pk)
 
@@ -172,6 +175,7 @@ class VistaAccionPartida(LoginRequiredMixin, View):
             messages.error(request, str(error))
             return redirect("partidas:detalle", pk=partida.pk)
 
+        notificar_cambio_partida(partida.pk, "accion_registrada")
         messages.success(request, f"Accion registrada: {tipo_accion}.")
         return redirect("partidas:detalle", pk=partida.pk)
 
@@ -191,5 +195,6 @@ class VistaAbandonarPartida(LoginRequiredMixin, View):
             return redirect("partidas:detalle", pk=partida.pk)
 
         abandonar_partida(partida, participacion)
+        notificar_cambio_partida(partida.pk, "jugador_salio")
         messages.success(request, "Has salido de la partida correctamente.")
         return redirect("partidas:lista")
