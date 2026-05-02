@@ -176,9 +176,15 @@ class ManoPoker(models.Model):
         blank=True,
         related_name="manos_ganadas_provisionalmente",
     )
+    ganadores = models.ManyToManyField(
+        ParticipacionPartida,
+        blank=True,
+        related_name="manos_ganadas",
+    )
     bote_total = models.PositiveIntegerField(default=0)
     apuesta_actual_ronda = models.PositiveIntegerField(default=0)
     incremento_minimo_subida = models.PositiveIntegerField(default=0)
+    descripcion_resultado = models.CharField(max_length=120, blank=True)
     cartas_comunitarias = models.CharField(max_length=50, blank=True)
     mazo_restante = models.TextField(blank=True)
     creada_en = models.DateTimeField(auto_now_add=True)

@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 
+from apps.partidas.evaluador import comparar_manos, evaluar_mejor_mano
 from apps.partidas.models import (
     AccionMano,
     CartaPrivada,
@@ -178,9 +179,13 @@ class FlujoPartidasTests(TestCase):
         self.assertRedirects(response, reverse("partidas:detalle", kwargs={"pk": partida.pk}))
         mano.refresh_from_db()
         participacion_1.refresh_from_db()
+        participacion_2.refresh_from_db()
         self.assertEqual(mano.estado, EstadoMano.FINALIZADA)
         self.assertEqual(mano.ganador, participacion_2)
         self.assertFalse(participacion_1.activa_en_mano)
+        self.assertEqual(participacion_2.fichas, 1010)
+        self.assertEqual(mano.descripcion_resultado, "Gana por retirada del resto de jugadores")
+        self.assertEqual(mano.ganadores.count(), 1)
         self.assertEqual(
             AccionMano.objects.filter(
                 mano=mano,
@@ -359,6 +364,105 @@ class FlujoPartidasTests(TestCase):
         self.assertEqual(mano.estado, EstadoMano.FLOP)
         self.assertFalse(partida.puede_iniciarse())
 
+    def test_showdown_asigna_ganador_y_reparte_bote_al_final_del_river(self):
+        partida, mano, participacion_1, participacion_2 = self._crear_partida_iniciada()
+        mano.estado = EstadoMano.RIVER
+        mano.turno_actual = participacion_1
+        mano.apuesta_actual_ronda = 0
+        mano.bote_total = 100
+        mano.cartas_comunitarias = "2P,5D,9T,JC,KP"
+        mano.save(
+            update_fields=[
+                "estado",
+                "turno_actual",
+                "apuesta_actual_ronda",
+                "bote_total",
+                "cartas_comunitarias",
+            ]
+        )
+        mano.cartas_privadas.filter(participacion=participacion_1).delete()
+        mano.cartas_privadas.filter(participacion=participacion_2).delete()
+        CartaPrivada.objects.create(mano=mano, participacion=participacion_1, orden=1, codigo="AP")
+        CartaPrivada.objects.create(mano=mano, participacion=participacion_1, orden=2, codigo="AD")
+        CartaPrivada.objects.create(mano=mano, participacion=participacion_2, orden=1, codigo="QP")
+        CartaPrivada.objects.create(mano=mano, participacion=participacion_2, orden=2, codigo="QD")
+        participacion_1.fichas = 900
+        participacion_1.apuesta_en_ronda = 0
+        participacion_1.ha_actuado_en_ronda = False
+        participacion_1.save(update_fields=["fichas", "apuesta_en_ronda", "ha_actuado_en_ronda"])
+        participacion_2.fichas = 900
+        participacion_2.apuesta_en_ronda = 0
+        participacion_2.ha_actuado_en_ronda = False
+        participacion_2.save(update_fields=["fichas", "apuesta_en_ronda", "ha_actuado_en_ronda"])
+
+        response_1 = self.client.post(
+            reverse("partidas:accion", kwargs={"pk": partida.pk}),
+            data={"tipo_accion": "pasar"},
+        )
+        self.assertRedirects(response_1, reverse("partidas:detalle", kwargs={"pk": partida.pk}))
+        self.client.logout()
+        self.client.login(username="jugador2", password="ClaveSegura123!")
+        response_2 = self.client.post(
+            reverse("partidas:accion", kwargs={"pk": partida.pk}),
+            data={"tipo_accion": "pasar"},
+        )
+        self.assertRedirects(response_2, reverse("partidas:detalle", kwargs={"pk": partida.pk}))
+
+        mano.refresh_from_db()
+        participacion_1.refresh_from_db()
+        participacion_2.refresh_from_db()
+        self.assertEqual(mano.estado, EstadoMano.FINALIZADA)
+        self.assertEqual(mano.ganador, participacion_1)
+        self.assertEqual(mano.descripcion_resultado, "jugador1 gana con pareja")
+        self.assertEqual(participacion_1.fichas, 1000)
+        self.assertEqual(participacion_2.fichas, 900)
+        self.assertEqual(list(mano.ganadores.values_list("usuario__username", flat=True)), ["jugador1"])
+
+    def test_showdown_reparte_bote_empatado(self):
+        partida, mano, participacion_1, participacion_2 = self._crear_partida_iniciada()
+        mano.estado = EstadoMano.RIVER
+        mano.turno_actual = participacion_1
+        mano.apuesta_actual_ronda = 0
+        mano.bote_total = 101
+        mano.cartas_comunitarias = "AP,KD,QT,JC,10P"
+        mano.save(
+            update_fields=[
+                "estado",
+                "turno_actual",
+                "apuesta_actual_ronda",
+                "bote_total",
+                "cartas_comunitarias",
+            ]
+        )
+        mano.cartas_privadas.all().delete()
+        CartaPrivada.objects.create(mano=mano, participacion=participacion_1, orden=1, codigo="2C")
+        CartaPrivada.objects.create(mano=mano, participacion=participacion_1, orden=2, codigo="3C")
+        CartaPrivada.objects.create(mano=mano, participacion=participacion_2, orden=1, codigo="4D")
+        CartaPrivada.objects.create(mano=mano, participacion=participacion_2, orden=2, codigo="5D")
+        participacion_1.fichas = 900
+        participacion_1.apuesta_en_ronda = 0
+        participacion_1.ha_actuado_en_ronda = False
+        participacion_1.save(update_fields=["fichas", "apuesta_en_ronda", "ha_actuado_en_ronda"])
+        participacion_2.fichas = 900
+        participacion_2.apuesta_en_ronda = 0
+        participacion_2.ha_actuado_en_ronda = False
+        participacion_2.save(update_fields=["fichas", "apuesta_en_ronda", "ha_actuado_en_ronda"])
+
+        self.client.post(reverse("partidas:accion", kwargs={"pk": partida.pk}), data={"tipo_accion": "pasar"})
+        self.client.logout()
+        self.client.login(username="jugador2", password="ClaveSegura123!")
+        self.client.post(reverse("partidas:accion", kwargs={"pk": partida.pk}), data={"tipo_accion": "pasar"})
+
+        mano.refresh_from_db()
+        participacion_1.refresh_from_db()
+        participacion_2.refresh_from_db()
+        self.assertEqual(mano.estado, EstadoMano.FINALIZADA)
+        self.assertIsNone(mano.ganador)
+        self.assertEqual(mano.ganadores.count(), 2)
+        self.assertEqual(participacion_1.fichas, 951)
+        self.assertEqual(participacion_2.fichas, 950)
+        self.assertIn("Empate entre", mano.descripcion_resultado)
+
     def _crear_partida_iniciada(self):
         partida = PartidaPoker.objects.create(
             nombre="Mesa activa",
@@ -381,3 +485,22 @@ class FlujoPartidasTests(TestCase):
         self.client.post(reverse("partidas:iniciar", kwargs={"pk": partida.pk}))
         mano = ManoPoker.objects.get(partida=partida)
         return partida, mano, participacion_1, participacion_2
+
+
+class EvaluadorManosTests(TestCase):
+    def test_detecta_poker_como_mejor_mano(self):
+        resultado = evaluar_mejor_mano(["AP", "AD", "AC", "AT", "KP", "QD", "JC"])
+        self.assertEqual(resultado["nombre"], "Poker")
+
+    def test_detecta_escalera_de_color_como_superior_a_full(self):
+        usuario_1 = object()
+        usuario_2 = object()
+        ganadores = comparar_manos(
+            {
+                usuario_1: ["9P", "8P", "7P", "6P", "5P", "2D", "AC"],
+                usuario_2: ["KP", "KD", "KC", "2P", "2C", "3D", "4T"],
+            }
+        )
+        self.assertEqual(len(ganadores), 1)
+        self.assertIs(ganadores[0]["participacion"], usuario_1)
+        self.assertEqual(ganadores[0]["nombre"], "Escalera de color")

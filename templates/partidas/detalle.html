@@ -43,8 +43,22 @@
         <p><strong>Bote total:</strong> {{ mano_actual.bote_total }}</p>
         <p><strong>Apuesta actual de la ronda:</strong> {{ mano_actual.apuesta_actual_ronda }}</p>
         <p><strong>Subida minima actual:</strong> {{ mano_actual.incremento_minimo_subida }}</p>
-        {% if mano_actual.ganador %}
+        {% if ganadores_mano %}
+            {% if ganadores_mano|length == 1 %}
+                <p><strong>Ganador de la mano:</strong> {{ ganadores_mano.0.usuario }}</p>
+            {% else %}
+                <p><strong>Ganadores de la mano:</strong></p>
+                <ul>
+                    {% for ganador in ganadores_mano %}
+                        <li>{{ ganador.usuario }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% elif mano_actual.ganador %}
             <p><strong>Ganador provisional de la mano:</strong> {{ mano_actual.ganador.usuario }}</p>
+        {% endif %}
+        {% if mano_actual.descripcion_resultado %}
+            <p><strong>Resultado:</strong> {{ mano_actual.descripcion_resultado }}</p>
         {% endif %}
 
         {% if cartas_comunitarias %}

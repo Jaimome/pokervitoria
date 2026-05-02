@@ -94,6 +94,7 @@ class VistaDetallePartida(LoginRequiredMixin, DetailView):
         context["acciones_recientes"] = mano_actual.acciones.select_related(
             "participacion__usuario"
         ) if mano_actual else []
+        context["ganadores_mano"] = mano_actual.ganadores.select_related("usuario") if mano_actual else []
         return context
 
 

@@ -45,6 +45,10 @@ La version actual del proyecto ya permite:
 - permitir la accion de `subir` con una cantidad objetivo valida
 - avanzar automaticamente entre `preflop`, `flop`, `turn` y `river`
 - mostrar cartas comunitarias segun avanza la mano
+- resolver el `showdown` al final de la mano si nadie se retira
+- evaluar combinaciones reales de `Texas Hold'em`
+- repartir el bote al ganador o repartirlo entre varios jugadores si hay empate
+- mostrar el resultado final de la mano y la combinacion ganadora
 - cerrar automaticamente la mano si solo queda un jugador activo
 - refrescar en tiempo real el detalle de una partida cuando cambia su estado
 
@@ -66,6 +70,8 @@ En la mesa tambien se muestra ya:
 - cuanto falta por igualar en tu turno
 - cual es la subida minima legal en ese momento
 - un campo para indicar hasta que cantidad quieres subir
+- quien ha ganado la mano al resolverse el showdown
+- si ha habido empate y como se ha repartido el bote
 
 Para facilitar las pruebas, la vista de detalle de partida muestra tambien un estado visible de conexion:
 
@@ -82,4 +88,4 @@ La version actual utiliza estas dependencias principales:
 - `Channels`
 - `Daphne`
 
-El siguiente bloque de trabajo sera resolver el `showdown`, evaluar combinaciones reales y encadenar varias manos seguidas dentro de una misma partida.
+El siguiente bloque de trabajo sera encadenar varias manos seguidas dentro de una misma partida, rotando posiciones y ciegas.

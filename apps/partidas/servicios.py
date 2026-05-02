@@ -2,6 +2,7 @@ from random import SystemRandom
 
 from django.utils import timezone
 
+from apps.partidas.evaluador import comparar_manos
 from apps.partidas.models import (
     AccionMano,
     CartaPrivada,
@@ -183,10 +184,11 @@ def ejecutar_accion(
     participantes_activos = list(mano.participantes_activos())
     if len(participantes_activos) == 1:
         ganador = participantes_activos[0]
-        mano.estado = EstadoMano.FINALIZADA
-        mano.turno_actual = None
-        mano.ganador = ganador
-        mano.save(update_fields=["estado", "turno_actual", "ganador"])
+        _cerrar_mano_por_ganador_directo(
+            mano,
+            ganador,
+            "Gana por retirada del resto de jugadores",
+        )
         return
 
     if _ronda_completada(mano):
@@ -229,10 +231,11 @@ def abandonar_partida(partida: PartidaPoker, participacion: ParticipacionPartida
     participantes_activos = list(mano.participantes_activos())
     if len(participantes_activos) == 1:
         ganador = participantes_activos[0]
-        mano.estado = EstadoMano.FINALIZADA
-        mano.turno_actual = None
-        mano.ganador = ganador
-        mano.save(update_fields=["estado", "turno_actual", "ganador"])
+        _cerrar_mano_por_ganador_directo(
+            mano,
+            ganador,
+            "Gana por retirada del resto de jugadores",
+        )
         return
 
     if mano.turno_actual_id == participacion.id:
@@ -289,9 +292,7 @@ def _avanzar_fase(mano: ManoPoker) -> None:
         mano.estado = EstadoMano.RIVER
         _repartir_cartas_comunitarias(mano, 1)
     elif mano.estado == EstadoMano.RIVER:
-        mano.estado = EstadoMano.FINALIZADA
-        mano.turno_actual = None
-        mano.save(update_fields=["estado", "turno_actual", "cartas_comunitarias", "mazo_restante"])
+        _resolver_showdown(mano)
         return
 
     for participacion in participantes_activos:
@@ -322,3 +323,67 @@ def _repartir_cartas_comunitarias(mano: ManoPoker, cantidad: int) -> None:
         nuevas_cartas.append(mazo.pop())
     mano.cartas_comunitarias = ",".join(cartas_actuales + nuevas_cartas)
     mano.mazo_restante = ",".join(mazo)
+
+
+def _resolver_showdown(mano: ManoPoker) -> None:
+    participantes_activos = list(mano.participantes_activos().select_related("usuario"))
+    cartas_comunitarias = mano.cartas_comunitarias_visibles()
+    cartas_por_jugador = {}
+
+    for participacion in participantes_activos:
+        cartas_privadas = list(
+            mano.cartas_privadas.filter(participacion=participacion).values_list("codigo", flat=True)
+        )
+        cartas_por_jugador[participacion] = cartas_privadas + cartas_comunitarias
+
+    resultados_ganadores = comparar_manos(cartas_por_jugador)
+    ganadores = [resultado["participacion"] for resultado in resultados_ganadores]
+    descripcion = resultados_ganadores[0]["nombre"]
+
+    _repartir_bote(mano.bote_total, ganadores)
+
+    mano.estado = EstadoMano.FINALIZADA
+    mano.turno_actual = None
+    mano.ganador = ganadores[0] if len(ganadores) == 1 else None
+    mano.descripcion_resultado = _construir_descripcion_showdown(ganadores, descripcion)
+    mano.save(update_fields=["estado", "turno_actual", "ganador", "descripcion_resultado"])
+    mano.ganadores.set(ganadores)
+
+
+def _cerrar_mano_por_ganador_directo(
+    mano: ManoPoker,
+    ganador: ParticipacionPartida,
+    descripcion_resultado: str,
+) -> None:
+    _repartir_bote(mano.bote_total, [ganador])
+    mano.estado = EstadoMano.FINALIZADA
+    mano.turno_actual = None
+    mano.ganador = ganador
+    mano.descripcion_resultado = descripcion_resultado
+    mano.save(update_fields=["estado", "turno_actual", "ganador", "descripcion_resultado"])
+    mano.ganadores.set([ganador])
+
+
+def _repartir_bote(bote_total: int, ganadores: list[ParticipacionPartida]) -> None:
+    if not ganadores or bote_total <= 0:
+        return
+
+    ganadores_ordenados = sorted(ganadores, key=lambda participacion: participacion.numero_asiento)
+    cantidad_base = bote_total // len(ganadores_ordenados)
+    resto = bote_total % len(ganadores_ordenados)
+
+    for indice, ganador in enumerate(ganadores_ordenados):
+        extra = 1 if indice < resto else 0
+        ganador.fichas += cantidad_base + extra
+        ganador.save(update_fields=["fichas"])
+
+
+def _construir_descripcion_showdown(
+    ganadores: list[ParticipacionPartida],
+    nombre_combinacion: str,
+) -> str:
+    if len(ganadores) == 1:
+        return f"{ganadores[0].usuario} gana con {nombre_combinacion.lower()}"
+
+    nombres = ", ".join(str(ganador.usuario) for ganador in ganadores)
+    return f"Empate entre {nombres} con {nombre_combinacion.lower()}"
