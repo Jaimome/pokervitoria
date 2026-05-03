@@ -3,10 +3,13 @@ from django.urls import path
 from apps.partidas.views import (
     VistaAccionPartida,
     VistaAbandonarPartida,
+    VistaBuscarPartida,
+    VistaCancelarBusquedaPartida,
     VistaCrearPartida,
     VistaDetallePartida,
     VistaIniciarPartida,
     VistaListaPartidas,
+    VistaPartidaPrivada,
     VistaUnirsePartida,
 )
 
@@ -16,6 +19,9 @@ app_name = "partidas"
 urlpatterns = [
     path("", VistaListaPartidas.as_view(), name="lista"),
     path("crear/", VistaCrearPartida.as_view(), name="crear"),
+    path("privada/", VistaPartidaPrivada.as_view(), name="privada"),
+    path("buscar/", VistaBuscarPartida.as_view(), name="buscar"),
+    path("buscar/cancelar/", VistaCancelarBusquedaPartida.as_view(), name="cancelar_busqueda"),
     path("<uuid:pk>/", VistaDetallePartida.as_view(), name="detalle"),
     path("<uuid:pk>/unirse/", VistaUnirsePartida.as_view(), name="unirse"),
     path("<uuid:pk>/iniciar/", VistaIniciarPartida.as_view(), name="iniciar"),

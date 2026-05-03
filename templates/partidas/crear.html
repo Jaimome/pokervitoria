@@ -1,15 +1,22 @@
 {% extends "base.html" %}
 
-{% block title %}Pokervitoria | Crear partida{% endblock %}
+{% block title %}pokerVitoria | Crear partida{% endblock %}
+
+{% block barra_superior %}
+    <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">←</a>
+    <div></div>
+{% endblock %}
 
 {% block content %}
-<article>
-    <h1>Crear partida</h1>
-    <p>Esta es una primera version del flujo de mesas. Todavia no inicia juego real.</p>
-    <form method="post">
+    <h1 class="titulo-seccion">Crear partida</h1>
+    <form class="formulario" method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Crear partida</button>
+        {% for field in form %}
+            <div class="grupo-campo">
+                <label class="etiqueta" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+            </div>
+        {% endfor %}
+        <button class="boton" type="submit">Crear</button>
     </form>
-</article>
 {% endblock %}

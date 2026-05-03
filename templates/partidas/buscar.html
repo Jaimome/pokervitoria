@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}pokerVitoria | Buscar partida{% endblock %}
+{% block pantalla_clase %}pantalla--centrada{% endblock %}
+{% block contenido_clase %}contenido-centrado{% endblock %}
+
+{% block barra_superior %}
+    <form method="post" action="{% url 'partidas:cancelar_busqueda' %}" data-confirmacion="¿Seguro que quieres cancelar la busqueda de partida?">
+        {% csrf_token %}
+        <button class="boton-icono boton-confirmacion" type="submit" aria-label="Cancelar busqueda">←</button>
+    </form>
+    <div></div>
+{% endblock %}
+
+{% block content %}
+    <div class="apilado texto-centro">
+        <h1 class="titulo-seccion">Buscando partida</h1>
+        <p class="loader-texto" id="loader-busqueda">··●</p>
+        <p class="texto-normal">{{ usuarios_conectados }} jugadores conectados</p>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        (() => {
+            const estados = ["··●", "●··", "·●·"];
+            const nodo = document.getElementById("loader-busqueda");
+            let indice = 0;
+            window.setInterval(() => {
+                indice = (indice + 1) % estados.length;
+                nodo.textContent = estados[indice];
+            }, 450);
+            window.setInterval(() => {
+                window.location.reload();
+            }, 2500);
+        })();
+    </script>
+{% endblock %}

@@ -16,8 +16,10 @@ class AutenticacionTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("usuarios:perfil"))
+        self.assertRedirects(response, reverse("nucleo:inicio"))
         self.assertTrue(Usuario.objects.filter(username="ana").exists())
+        usuario = Usuario.objects.get(username="ana")
+        self.assertEqual(usuario.saldo_total, 2000)
         self.assertEqual(self.client.get(reverse("usuarios:perfil")).status_code, 200)
 
     def test_el_perfil_requiere_autenticacion(self):
@@ -25,3 +27,16 @@ class AutenticacionTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("usuarios:iniciar_sesion"), response.url)
+
+    def test_borrar_cuenta_elimina_al_usuario_autenticado(self):
+        usuario = Usuario.objects.create_user(
+            username="borrar",
+            password="ClaveSegura123!",
+            email="borrar@example.com",
+        )
+        self.client.login(username="borrar", password="ClaveSegura123!")
+
+        response = self.client.post(reverse("usuarios:borrar_cuenta"))
+
+        self.assertRedirects(response, reverse("nucleo:inicio"))
+        self.assertFalse(Usuario.objects.filter(pk=usuario.pk).exists())

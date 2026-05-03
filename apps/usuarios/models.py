@@ -10,6 +10,8 @@ class Usuario(AbstractUser):
     de Django a mitad del desarrollo.
     """
 
+    saldo_total = models.PositiveIntegerField(default=2000)
+
     class Meta:
         verbose_name = "usuario"
         verbose_name_plural = "usuarios"

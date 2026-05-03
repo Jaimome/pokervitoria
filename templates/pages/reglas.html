@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}pokerVitoria | Reglas del poker{% endblock %}
+
+{% block barra_superior %}
+    <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">←</a>
+    <div></div>
+{% endblock %}
+
+{% block content %}
+    <h1 class="titulo-seccion">Reglas del poker</h1>
+
+    <section class="panel-liso apilado">
+        <h2 style="margin:0;">Texas Hold'em en pocas palabras</h2>
+        <p class="texto-normal">
+            Cada jugador recibe <strong>dos cartas privadas</strong>. Durante la mano se revelan
+            <strong>cinco cartas comunitarias</strong> en el centro de la mesa: primero el
+            <em>flop</em> (3), luego el <em>turn</em> (1) y por ultimo el <em>river</em> (1).
+        </p>
+        <p class="texto-normal">
+            El objetivo es formar la <strong>mejor combinacion posible de cinco cartas</strong>
+            usando cualquier mezcla entre tus cartas privadas y las comunitarias.
+        </p>
+    </section>
+
+    <section class="panel-liso apilado">
+        <h2 style="margin:0;">Orden de las manos</h2>
+        <div class="apilado pequeno">
+            <p class="texto-normal"><strong>10/10</strong>: escalera de color</p>
+            <p class="texto-normal"><strong>9/10</strong>: poker</p>
+            <p class="texto-normal"><strong>8/10</strong>: full</p>
+            <p class="texto-normal"><strong>7/10</strong>: color</p>
+            <p class="texto-normal"><strong>6/10</strong>: escalera</p>
+            <p class="texto-normal"><strong>5/10</strong>: trio</p>
+            <p class="texto-normal"><strong>4/10</strong>: doble pareja</p>
+            <p class="texto-normal"><strong>3/10</strong>: pareja</p>
+            <p class="texto-normal"><strong>1/10</strong>: carta alta</p>
+        </div>
+    </section>
+
+    <section class="panel-liso apilado">
+        <h2 style="margin:0;">Acciones disponibles</h2>
+        <p class="texto-normal"><strong>Pagar X</strong>: igualas la apuesta pendiente actual.</p>
+        <p class="texto-normal"><strong>Pasar</strong>: mantienes tu mano sin apostar mas cuando no debes igualar nada.</p>
+        <p class="texto-normal"><strong>Subir</strong>: aumentas la apuesta total de la ronda.</p>
+        <p class="texto-normal"><strong>Retirarse</strong>: abandonas la mano y pierdes lo que ya habias puesto en el bote.</p>
+    </section>
+
+    <section class="panel-liso apilado">
+        <h2 style="margin:0;">Como funciona pokerVitoria</h2>
+        <p class="texto-normal">
+            Cada cuenta empieza con <strong>2.000 fichas</strong>. Cuando entras en una partida,
+            llevas como maximo <strong>200 fichas</strong> o menos si tu saldo total es inferior.
+        </p>
+        <p class="texto-normal">
+            El bloque superior de la mesa muestra a los otros jugadores. Su numero visible de fichas
+            representa las <strong>fichas que tienen dentro de esa partida</strong>, no el saldo total de su cuenta.
+        </p>
+        <p class="texto-normal">
+            Tus cartas privadas permanecen ocultas por defecto. Si colocas el cursor encima de tu zona
+            de cartas, se revelan junto con una <strong>puntuacion orientativa</strong> de la mano.
+        </p>
+        <p class="texto-normal">
+            Si el contador de turno llega a cero y no actuas, el sistema te retira automaticamente de la mano.
+        </p>
+    </section>
+{% endblock %}

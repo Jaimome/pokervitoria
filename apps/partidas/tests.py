@@ -12,6 +12,7 @@ from apps.partidas.models import (
     ParticipacionPartida,
     PartidaPoker,
 )
+from apps.partidas.servicios import generar_codigo_privado_unico
 from apps.usuarios.models import Usuario
 
 
@@ -60,6 +61,38 @@ class FlujoPartidasTests(TestCase):
         self.assertTrue(
             ParticipacionPartida.objects.filter(partida=partida, usuario=self.usuario).exists()
         )
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.saldo_total, 1800)
+
+    def test_crear_partida_privada_reserva_codigo_y_descuenta_compra(self):
+        response = self.client.post(
+            reverse("partidas:privada"),
+            data={"accion": "crear", "codigo_creacion": "PRIVADA001", "codigo_entrada": ""},
+        )
+
+        partida = PartidaPoker.objects.get(codigo_privado="PRIVADA001")
+        self.assertRedirects(response, reverse("partidas:detalle", kwargs={"pk": partida.pk}))
+        self.assertTrue(partida.es_privada)
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.saldo_total, 1800)
+
+    def test_busqueda_publica_empareja_a_dos_usuarios(self):
+        otro_cliente = self.client_class()
+        otro_cliente.login(username="jugador2", password="ClaveSegura123!")
+
+        respuesta_1 = self.client.get(reverse("partidas:buscar"))
+        self.assertEqual(respuesta_1.status_code, 200)
+
+        respuesta_2 = otro_cliente.get(reverse("partidas:buscar"))
+        self.assertEqual(respuesta_2.status_code, 302)
+
+        partida = PartidaPoker.objects.get(es_privada=False)
+        self.assertRedirects(
+            respuesta_2,
+            reverse("partidas:detalle", kwargs={"pk": partida.pk}),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(partida.participaciones.count(), 2)
 
     def test_se_publican_ciegas_al_iniciar_la_partida(self):
         partida = PartidaPoker.objects.create(
@@ -86,8 +119,8 @@ class FlujoPartidasTests(TestCase):
         self.assertEqual(mano.estado, EstadoMano.PREFLOP)
         self.assertEqual(mano.bote_total, 30)
         self.assertEqual(mano.apuesta_actual_ronda, 20)
-        self.assertEqual(p1.fichas, 990)
-        self.assertEqual(p2.fichas, 980)
+        self.assertEqual(p1.fichas, 190)
+        self.assertEqual(p2.fichas, 180)
         self.assertEqual(p1.apuesta_en_ronda, 10)
         self.assertEqual(p2.apuesta_en_ronda, 20)
         self.assertEqual(mano.turno_actual.usuario, self.usuario)
@@ -183,7 +216,7 @@ class FlujoPartidasTests(TestCase):
         self.assertEqual(mano.estado, EstadoMano.FINALIZADA)
         self.assertEqual(mano.ganador, participacion_2)
         self.assertFalse(participacion_1.activa_en_mano)
-        self.assertEqual(participacion_2.fichas, 1010)
+        self.assertEqual(participacion_2.fichas, 210)
         self.assertEqual(mano.descripcion_resultado, "Gana por retirada del resto de jugadores")
         self.assertEqual(mano.ganadores.count(), 1)
         self.assertEqual(
@@ -211,17 +244,19 @@ class FlujoPartidasTests(TestCase):
 
         response = self.client.post(reverse("partidas:abandonar", kwargs={"pk": partida.pk}))
 
-        self.assertRedirects(response, reverse("partidas:lista"))
+        self.assertRedirects(response, reverse("nucleo:inicio"))
         participacion.refresh_from_db()
+        self.usuario.refresh_from_db()
         self.assertEqual(participacion.estado, EstadoParticipacion.SALIO)
         self.assertEqual(partida.numero_jugadores, 0)
+        self.assertEqual(self.usuario.saldo_total, 2200)
 
     def test_abandonar_la_partida_si_es_tu_turno_pasa_el_turno_al_siguiente(self):
         partida, mano, participacion_1, participacion_2 = self._crear_partida_iniciada()
 
         response = self.client.post(reverse("partidas:abandonar", kwargs={"pk": partida.pk}))
 
-        self.assertRedirects(response, reverse("partidas:lista"))
+        self.assertRedirects(response, reverse("nucleo:inicio"))
         mano.refresh_from_db()
         participacion_1.refresh_from_db()
         self.assertEqual(participacion_1.estado, EstadoParticipacion.SALIO)
@@ -297,7 +332,7 @@ class FlujoPartidasTests(TestCase):
         self.assertEqual(mano.incremento_minimo_subida, 40)
         self.assertEqual(mano.bote_total, 90)
         self.assertEqual(participacion_3.apuesta_en_ronda, 60)
-        self.assertEqual(participacion_3.fichas, 940)
+        self.assertEqual(participacion_3.fichas, 140)
         self.assertFalse(participacion_1.ha_actuado_en_ronda)
         self.assertFalse(participacion_2.ha_actuado_en_ronda)
 
@@ -344,7 +379,7 @@ class FlujoPartidasTests(TestCase):
         self.assertEqual(mano.bote_total, 30)
         self.assertEqual(mano.turno_actual, participacion_3)
         self.assertEqual(participacion_3.apuesta_en_ronda, 0)
-        self.assertEqual(participacion_3.fichas, 1000)
+        self.assertEqual(participacion_3.fichas, 200)
 
     def test_no_se_puede_iniciar_otra_mano_mientras_haya_una_activa(self):
         partida, mano, participacion_1, participacion_2 = self._crear_partida_iniciada()
@@ -462,6 +497,11 @@ class FlujoPartidasTests(TestCase):
         self.assertEqual(participacion_1.fichas, 951)
         self.assertEqual(participacion_2.fichas, 950)
         self.assertIn("Empate entre", mano.descripcion_resultado)
+
+    def test_generar_codigo_privado_unico_devuelve_cadena_disponible(self):
+        codigo = generar_codigo_privado_unico()
+        self.assertEqual(len(codigo), 10)
+        self.assertFalse(PartidaPoker.objects.filter(codigo_privado=codigo).exists())
 
     def _crear_partida_iniciada(self):
         partida = PartidaPoker.objects.create(

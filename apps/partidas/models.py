@@ -46,6 +46,8 @@ class PartidaPoker(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre = models.CharField(max_length=100)
+    es_privada = models.BooleanField(default=False)
+    codigo_privado = models.CharField(max_length=16, unique=True, null=True, blank=True)
     creador = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -115,7 +117,7 @@ class ParticipacionPartida(models.Model):
         related_name="participaciones_en_partidas",
     )
     numero_asiento = models.PositiveSmallIntegerField()
-    fichas = models.PositiveIntegerField(default=1000)
+    fichas = models.PositiveIntegerField(default=200)
     estado = models.CharField(
         max_length=20,
         choices=EstadoParticipacion.choices,
@@ -169,6 +171,7 @@ class ManoPoker(models.Model):
         blank=True,
         related_name="turnos_actuales",
     )
+    turno_actual_desde = models.DateTimeField(null=True, blank=True)
     ganador = models.ForeignKey(
         ParticipacionPartida,
         on_delete=models.SET_NULL,
@@ -282,3 +285,22 @@ class AccionMano(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_tipo_display()} de {self.participacion.usuario}"
+
+
+class SolicitudPartidaPublica(models.Model):
+    """Representa a un usuario en cola para buscar una partida publica."""
+
+    usuario = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="solicitud_partida_publica",
+    )
+    creada_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["creada_en"]
+        verbose_name = "solicitud de partida publica"
+        verbose_name_plural = "solicitudes de partida publica"
+
+    def __str__(self) -> str:
+        return f"Busqueda publica de {self.usuario}"

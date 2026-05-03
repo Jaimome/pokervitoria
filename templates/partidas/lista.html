@@ -1,29 +1,31 @@
 {% extends "base.html" %}
 
-{% block title %}Pokervitoria | Partidas{% endblock %}
+{% block title %}pokerVitoria | Partidas{% endblock %}
+
+{% block barra_superior %}
+    <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">←</a>
+    <div></div>
+{% endblock %}
 
 {% block content %}
-<section>
-    <h1>Partidas disponibles</h1>
-    <p>Desde aqui puedes crear una partida nueva o entrar en una ya existente.</p>
-
-    <div class="acciones">
-        <a class="boton" href="{% url 'partidas:crear' %}">Crear partida</a>
+    <h1 class="titulo-seccion">Partidas</h1>
+    <div class="contenedor-botones">
+        <a class="boton-secundario" href="{% url 'partidas:crear' %}">Crear manual</a>
     </div>
-
-    {% if partidas %}
-        <ul>
+    <div class="panel-liso" style="flex:1; overflow-y:auto;">
+        <ul class="lista-vertical">
             {% for partida in partidas %}
-                <li>
-                    <strong>{{ partida.nombre }}</strong>
-                    - {{ partida.get_estado_display }}
-                    - {{ partida.numero_jugadores }}/{{ partida.maximo_jugadores }} jugadores
-                    - <a href="{% url 'partidas:detalle' partida.pk %}">Ver detalle</a>
+                <li class="fila-lista">
+                    <a class="truncado" href="{% url 'partidas:detalle' partida.pk %}">
+                        {{ partida.nombre }}
+                    </a>
+                    <span class="truncado">
+                        {% if partida.es_privada %}Privada{% else %}Publica{% endif %}
+                    </span>
                 </li>
+            {% empty %}
+                <li class="texto-normal">Todavia no hay partidas disponibles.</li>
             {% endfor %}
         </ul>
-    {% else %}
-        <p>Todavia no hay partidas creadas.</p>
-    {% endif %}
-</section>
+    </div>
 {% endblock %}

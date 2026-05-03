@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}pokerVitoria | Partida privada{% endblock %}
+
+{% block barra_superior %}
+    <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">←</a>
+    <div></div>
+{% endblock %}
+
+{% block content %}
+    <h1 class="titulo-seccion">Partida privada</h1>
+
+    <form class="formulario" method="post">
+        {% csrf_token %}
+        <button class="boton" type="submit" name="accion" value="crear">Crear</button>
+        <div class="fila-acciones-flex">
+            {{ formulario.codigo_creacion }}
+            <button class="boton-secundario" type="button" data-copiar-objetivo="#id_codigo_creacion">Copiar</button>
+        </div>
+    </form>
+
+    <form class="formulario" method="post">
+        {% csrf_token %}
+        <button class="boton" type="submit" name="accion" value="entrar">Entrar</button>
+        {{ formulario.codigo_entrada }}
+    </form>
+
+    <div class="zona-errores">
+        {% if formulario.errors %}
+            {% for field in formulario %}
+                {% for error in field.errors %}
+                    <p class="texto-normal">{{ error }}</p>
+                {% endfor %}
+            {% endfor %}
+            {% for error in formulario.non_field_errors %}
+                <p class="texto-normal">{{ error }}</p>
+            {% endfor %}
+        {% endif %}
+    </div>
+{% endblock %}

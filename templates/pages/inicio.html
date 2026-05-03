@@ -1,23 +1,32 @@
 {% extends "base.html" %}
 
-{% block title %}Pokervitoria | Inicio{% endblock %}
+{% block title %}pokerVitoria{% endblock %}
+{% block pantalla_clase %}pantalla--centrada{% endblock %}
+{% block contenido_clase %}contenido-centrado{% endblock %}
+
+{% block barra_superior %}
+    {% if user.is_authenticated %}
+        <a class="boton-icono" href="{% url 'nucleo:reglas' %}" aria-label="Reglas del poker">?</a>
+        <a class="bloque-perfil" href="{% url 'usuarios:perfil' %}">
+            <span class="avatar" aria-hidden="true">{{ user.username|slice:":1"|upper }}</span>
+            <span class="datos-perfil">
+                <strong class="truncado">{{ user.username }}</strong>
+                <span class="saldo truncado">{{ user.saldo_total }} fichas</span>
+            </span>
+        </a>
+    {% endif %}
+{% endblock %}
 
 {% block content %}
-<section>
-    <h1>Pokervitoria</h1>
-    <p>Base inicial del TFG preparada para crecer hacia un poker online mantenible y bien documentado.</p>
-    {% if user.is_authenticated %}
-        <p>Has iniciado sesion como <strong>{{ user }}</strong>.</p>
-        <div class="acciones">
-            <a class="boton" href="{% url 'partidas:lista' %}">Ver partidas</a>
-            <a class="boton" href="{% url 'usuarios:perfil' %}">Ir a mi perfil</a>
-        </div>
-    {% else %}
-        <p>El primer flujo ya disponible es el de autenticacion: registro, inicio de sesion y cierre de sesion.</p>
-        <div class="acciones">
-            <a class="boton" href="{% url 'usuarios:registro' %}">Crear cuenta</a>
+    <div class="contenedor-botones" style="max-width: 18rem;">
+        <h1 class="titulo-principal">pokerVitoria</h1>
+        {% if user.is_authenticated %}
+            <a class="boton" href="{% url 'partidas:buscar' %}">Buscar partida</a>
+            <a class="boton" href="{% url 'partidas:privada' %}">Partida privada</a>
+            <a class="boton" href="{% url 'clasificacion:ranking' %}">Ranking</a>
+        {% else %}
             <a class="boton" href="{% url 'usuarios:iniciar_sesion' %}">Iniciar sesion</a>
-        </div>
-    {% endif %}
-</section>
+            <a class="boton" href="{% url 'usuarios:registro' %}">Registrarse</a>
+        {% endif %}
+    </div>
 {% endblock %}

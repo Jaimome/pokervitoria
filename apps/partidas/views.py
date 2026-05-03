@@ -1,34 +1,52 @@
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import IntegrityError
 from django.http import Http404
-from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.shortcuts import redirect, render
+from django.urls import reverse, reverse_lazy
 from django.views import View
-from django.views.generic import CreateView, DetailView, ListView
+from django.views.generic import CreateView, DetailView, ListView, TemplateView
 
-from apps.partidas.forms import FormularioCrearPartida
+from apps.nucleo.views import contar_usuarios_conectados
+from apps.partidas.forms import FormularioCrearPartida, FormularioPartidaPrivada
 from apps.partidas.models import (
     EstadoParticipacion,
-    ManoPoker,
     ParticipacionPartida,
     PartidaPoker,
+    SolicitudPartidaPublica,
     TipoAccion,
 )
-from apps.partidas.servicios import abandonar_partida, ejecutar_accion, iniciar_mano_inicial
+from apps.partidas.servicios import (
+    SEGUNDOS_TURNO,
+    abandonar_partida,
+    cancelar_busqueda_publica,
+    crear_partida_privada,
+    ejecutar_accion,
+    generar_codigo_privado_unico,
+    iniciar_mano_inicial,
+    iniciar_o_consultar_busqueda_publica,
+    normalizar_codigo_privado,
+    obtener_puntuacion_orientativa,
+    unir_usuario_a_partida,
+)
 from apps.partidas.tiempo_real import notificar_cambio_partida
 
 
 class VistaListaPartidas(LoginRequiredMixin, ListView):
-    """Muestra las partidas disponibles para el usuario autenticado."""
+    """Listado auxiliar de partidas disponibles."""
 
     model = PartidaPoker
     template_name = "partidas/lista.html"
     context_object_name = "partidas"
 
+    def get_queryset(self):
+        return PartidaPoker.objects.order_by("-creada_en")
+
 
 class VistaCrearPartida(LoginRequiredMixin, CreateView):
-    """Permite crear una nueva partida desde el navegador."""
+    """Vista auxiliar para crear partidas manualmente."""
 
     model = PartidaPoker
     form_class = FormularioCrearPartida
@@ -42,6 +60,106 @@ class VistaCrearPartida(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse_lazy("partidas:detalle", kwargs={"pk": self.object.pk})
+
+
+class VistaPartidaPrivada(LoginRequiredMixin, TemplateView):
+    """Pantalla para crear o entrar en una partida privada por codigo."""
+
+    template_name = "partidas/privada.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["formulario"] = kwargs.get(
+            "formulario",
+            FormularioPartidaPrivada(
+                initial={"codigo_creacion": generar_codigo_privado_unico()}
+            ),
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        formulario = FormularioPartidaPrivada(request.POST)
+        accion = request.POST.get("accion")
+        if accion == "crear":
+            codigo = formulario.data.get("codigo_creacion", "")
+            try:
+                partida = crear_partida_privada(request.user, codigo)
+            except ValueError as error:
+                formulario.is_valid()
+                formulario.add_error("codigo_creacion", str(error))
+                return self.render_to_response(
+                    self.get_context_data(formulario=formulario)
+                )
+            try:
+                unir_usuario_a_partida(partida, request.user)
+            except ValueError as error:
+                partida.delete()
+                formulario.is_valid()
+                formulario.add_error("codigo_creacion", str(error))
+                return self.render_to_response(
+                    self.get_context_data(formulario=formulario)
+                )
+            notificar_cambio_partida(partida.pk, "partida_privada_creada")
+            messages.success(request, "Partida privada creada correctamente.")
+            return redirect("partidas:detalle", pk=partida.pk)
+
+        if accion == "entrar":
+            codigo = normalizar_codigo_privado(formulario.data.get("codigo_entrada", ""))
+            try:
+                partida = PartidaPoker.objects.get(es_privada=True, codigo_privado=codigo)
+            except PartidaPoker.DoesNotExist:
+                formulario.is_valid()
+                formulario.add_error("codigo_entrada", "No existe ninguna partida privada con ese codigo.")
+                return self.render_to_response(
+                    self.get_context_data(formulario=formulario)
+                )
+
+            participacion_existente = partida.participaciones.filter(usuario=request.user).first()
+            if participacion_existente and participacion_existente.estado != EstadoParticipacion.SALIO:
+                return redirect("partidas:detalle", pk=partida.pk)
+            try:
+                unir_usuario_a_partida(partida, request.user, participacion_existente)
+            except ValueError as error:
+                formulario.is_valid()
+                formulario.add_error("codigo_entrada", str(error))
+                return self.render_to_response(
+                    self.get_context_data(formulario=formulario)
+                )
+            notificar_cambio_partida(partida.pk, "jugador_unido")
+            messages.success(request, "Te has unido a la partida privada.")
+            return redirect("partidas:detalle", pk=partida.pk)
+
+        return self.render_to_response(self.get_context_data(formulario=formulario))
+
+
+class VistaBuscarPartida(LoginRequiredMixin, TemplateView):
+    """Pantalla de espera y emparejamiento publico simple."""
+
+    template_name = "partidas/buscar.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        partida = iniciar_o_consultar_busqueda_publica(request.user)
+        if partida is not None:
+            messages.success(request, "Se ha encontrado una partida publica.")
+            return redirect("partidas:detalle", pk=partida.pk)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["usuarios_conectados"] = contar_usuarios_conectados()
+        context["busqueda_activa"] = SolicitudPartidaPublica.objects.filter(
+            usuario=self.request.user
+        ).exists()
+        return context
+
+
+class VistaCancelarBusquedaPartida(LoginRequiredMixin, View):
+    """Cancela la busqueda publica actual del usuario."""
+
+    def post(self, request, *args, **kwargs):
+        cancelar_busqueda_publica(request.user)
+        messages.info(request, "Busqueda publica cancelada.")
+        return redirect("nucleo:inicio")
 
 
 class VistaDetallePartida(LoginRequiredMixin, DetailView):
@@ -63,13 +181,29 @@ class VistaDetallePartida(LoginRequiredMixin, DetailView):
         context["asiento_libre"] = self.object.obtener_primer_asiento_libre()
         context["puede_iniciarse"] = self.object.puede_iniciarse()
         context["mano_actual"] = mano_actual
+        context["participantes_visibles"] = list(
+            self.object.participaciones.exclude(usuario=self.request.user).select_related("usuario")
+        )
+
+        cartas_privadas = []
+        puntuacion_orientativa = None
         if mano_actual and participacion_actual:
-            context["cartas_privadas"] = mano_actual.cartas_privadas.filter(
-                participacion=participacion_actual
+            cartas_privadas = list(
+                mano_actual.cartas_privadas.filter(participacion=participacion_actual)
+            )
+            cartas_para_puntuacion = [
+                carta.codigo for carta in cartas_privadas
+            ] + mano_actual.cartas_comunitarias_visibles()
+            puntuacion_orientativa = obtener_puntuacion_orientativa(cartas_para_puntuacion)
+
+        context["cartas_privadas"] = cartas_privadas
+        context["puntuacion_orientativa"] = puntuacion_orientativa
+        if puntuacion_orientativa is not None:
+            context["color_puntuacion_orientativa"] = (
+                f"hsl({(puntuacion_orientativa - 1) * 13}, 72%, 42%)"
             )
         else:
-            context["cartas_privadas"] = []
-
+            context["color_puntuacion_orientativa"] = None
         context["es_mi_turno"] = bool(
             mano_actual
             and participacion_actual
@@ -90,11 +224,28 @@ class VistaDetallePartida(LoginRequiredMixin, DetailView):
             if participacion_actual
             else 0
         )
-        context["cartas_comunitarias"] = mano_actual.cartas_comunitarias_visibles() if mano_actual else []
-        context["acciones_recientes"] = mano_actual.acciones.select_related(
-            "participacion__usuario"
-        ) if mano_actual else []
-        context["ganadores_mano"] = mano_actual.ganadores.select_related("usuario") if mano_actual else []
+        context["cartas_comunitarias"] = (
+            mano_actual.cartas_comunitarias_visibles() if mano_actual else []
+        )
+        context["puede_subir"] = bool(
+            participacion_actual
+            and mano_actual
+            and (participacion_actual.apuesta_en_ronda + participacion_actual.fichas)
+            >= (mano_actual.apuesta_actual_ronda + mano_actual.incremento_minimo_subida)
+        )
+        context["acciones_recientes"] = (
+            mano_actual.acciones.select_related("participacion__usuario") if mano_actual else []
+        )
+        context["ganadores_mano"] = (
+            mano_actual.ganadores.select_related("usuario") if mano_actual else []
+        )
+        context["segundos_turno"] = SEGUNDOS_TURNO
+        if mano_actual and mano_actual.turno_actual_desde:
+            context["turno_expira_en"] = mano_actual.turno_actual_desde + timedelta(
+                seconds=SEGUNDOS_TURNO
+            )
+        else:
+            context["turno_expira_en"] = None
         return context
 
 
@@ -109,29 +260,10 @@ class VistaUnirsePartida(LoginRequiredMixin, View):
             messages.info(request, "Ya formas parte de esta partida.")
             return redirect("partidas:detalle", pk=partida.pk)
 
-        asiento_libre = partida.obtener_primer_asiento_libre()
-        if asiento_libre is None:
-            messages.error(request, "La partida ya esta completa.")
-            return redirect("partidas:detalle", pk=partida.pk)
-
         try:
-            if participacion_existente and participacion_existente.estado == EstadoParticipacion.SALIO:
-                participacion_existente.numero_asiento = asiento_libre
-                participacion_existente.estado = EstadoParticipacion.UNIDO
-                participacion_existente.activa_en_mano = False
-                participacion_existente.salio_en = None
-                participacion_existente.save(
-                    update_fields=["numero_asiento", "estado", "activa_en_mano", "salio_en"]
-                )
-            else:
-                ParticipacionPartida.objects.create(
-                    partida=partida,
-                    usuario=request.user,
-                    numero_asiento=asiento_libre,
-                    estado=EstadoParticipacion.UNIDO,
-                )
-        except IntegrityError:
-            messages.error(request, "No se ha podido unir el usuario a la partida.")
+            unir_usuario_a_partida(partida, request.user, participacion_existente)
+        except (IntegrityError, ValueError) as error:
+            messages.error(request, str(error))
             return redirect("partidas:detalle", pk=partida.pk)
 
         notificar_cambio_partida(partida.pk, "jugador_unido")
@@ -155,12 +287,15 @@ class VistaIniciarPartida(LoginRequiredMixin, View):
             return redirect("partidas:detalle", pk=partida.pk)
 
         notificar_cambio_partida(partida.pk, "partida_iniciada")
-        messages.success(request, "La partida se ha iniciado y ya se han repartido las cartas privadas.")
+        messages.success(
+            request,
+            "La partida se ha iniciado y ya se han repartido las cartas privadas.",
+        )
         return redirect("partidas:detalle", pk=partida.pk)
 
 
 class VistaAccionPartida(LoginRequiredMixin, View):
-    """Procesa una accion minima del jugador actual sobre la mano activa."""
+    """Procesa una accion del jugador actual sobre la mano activa."""
 
     def post(self, request, *args, **kwargs):
         try:
@@ -191,22 +326,29 @@ class VistaAccionPartida(LoginRequiredMixin, View):
             try:
                 objetivo_subida = int(objetivo_subida_texto)
             except ValueError:
-                messages.error(request, "Debes indicar una cantidad numerica valida para subir.")
+                messages.error(
+                    request,
+                    "Debes indicar una cantidad numerica valida para subir.",
+                )
                 return redirect("partidas:detalle", pk=partida.pk)
 
         try:
-            ejecutar_accion(mano, participacion, tipo_accion, objetivo_subida=objetivo_subida)
+            ejecutar_accion(
+                mano,
+                participacion,
+                tipo_accion,
+                objetivo_subida=objetivo_subida,
+            )
         except ValueError as error:
             messages.error(request, str(error))
             return redirect("partidas:detalle", pk=partida.pk)
 
         notificar_cambio_partida(partida.pk, "accion_registrada")
-        messages.success(request, f"Accion registrada: {tipo_accion}.")
         return redirect("partidas:detalle", pk=partida.pk)
 
 
 class VistaAbandonarPartida(LoginRequiredMixin, View):
-    """Permite salir de una partida para no bloquear sesiones de prueba."""
+    """Permite salir de una partida sin perder las fichas no comprometidas."""
 
     def post(self, request, *args, **kwargs):
         try:
@@ -222,4 +364,4 @@ class VistaAbandonarPartida(LoginRequiredMixin, View):
         abandonar_partida(partida, participacion)
         notificar_cambio_partida(partida.pk, "jugador_salio")
         messages.success(request, "Has salido de la partida correctamente.")
-        return redirect("partidas:lista")
+        return redirect("nucleo:inicio")

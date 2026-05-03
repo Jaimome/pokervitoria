@@ -1,91 +1,109 @@
 # Pokervitoria
 
-Pokervitoria es mi `TFG` de Ingenieria Informatica y consiste en el desarrollo de un videojuego online de `Texas Hold'em`.
+Pokervitoria es un `TFG` de Ingenieria Informatica centrado en el desarrollo de un poker online de `Texas Hold'em` que, ademas de ser jugable, esta pensado como caso de estudio docente.
 
-El proyecto tiene un doble objetivo:
+La idea del proyecto es construir una base:
 
-- construir un poker online funcional donde varios jugadores puedan registrarse, entrar, jugar partidas y consultar resultados
-- usar ese sistema como caso de estudio para distintas asignaturas de la carrera
+- funcional para jugar desde navegador
+- mantenible y clara para evolucionarla con orden
+- lo bastante documentada como para poder explicarla, analizarla y mejorarla
 
-Eso significa que Pokervitoria no solo debe funcionar, sino que tambien debe ser:
-
-- mantenible
-- entendible
-- bien documentado
-- defendible a nivel academico
-
-La tecnologia principal del proyecto sera:
+La tecnologia principal es:
 
 - `Python`
 - `Django`
-- `PostgreSQL`
+- `Channels`
+- `Daphne`
+- `SQLite` en local
+- `PostgreSQL` como base de datos objetivo para despliegue
 
-El alcance del trabajo parte de un prototipo jugable completo y evoluciona hacia una plataforma docente mas solida, con mejor arquitectura, trazabilidad, estadisticas y despliegue reproducible.
+## Que puede hacer ya la version actual
 
-## Version actual
+La version actual ya permite:
 
-La version actual del proyecto ya permite:
-
-- arrancar una aplicacion web funcional en `Django`
+- abrir una aplicacion web funcional en navegador con interfaz vertical y minimalista
+- mostrar una portada distinta para usuarios autenticados y no autenticados
 - registrar usuarios
-- iniciar y cerrar sesion
-- mostrar el usuario autenticado en la navegacion
-- consultar un perfil autenticado
-- persistir usuarios, partidas, participaciones y manos en base de datos local
-- crear partidas desde navegador
-- ver el listado de partidas disponibles
-- unirse a una partida existente
-- salir de una partida y volver a entrar despues
-- ver el detalle de una mesa con sus participantes
+- iniciar sesion
+- cerrar sesion
+- borrar la cuenta desde perfil
+- crear cuentas nuevas con un saldo inicial de `2.000` fichas
+- mostrar el saldo total del jugador en la pantalla principal, en perfil y en ranking
+- ver un ranking completo con todos los jugadores ordenados por saldo total
+- consultar una pantalla de reglas del poker y de uso basico de la interfaz
+- crear partidas privadas mediante un codigo unico editable
+- copiar el codigo de una partida privada al portapapeles
+- entrar en una partida privada usando un codigo existente
+- buscar partida publica mediante una cola simple de emparejamiento
+- cancelar la busqueda publica con confirmacion
+- mostrar el numero de jugadores conectados a partir de sesiones autenticadas activas
+- unirse a una partida descontando del saldo total un maximo de `200` fichas
+- hacer que las fichas dentro de la partida y el saldo total del usuario queden separados
+- devolver al saldo total las fichas restantes de la partida cuando el usuario sale de la mesa
+- mantener el dinero dentro del sistema sin crearlo ni destruirlo durante las manos
 - iniciar una mano con al menos dos jugadores
 - repartir cartas privadas a cada jugador
 - publicar automaticamente ciega pequena y ciega grande
-- mostrar el turno actual
-- permitir acciones basicas de `pasar`, `igualar` y `retirarse`
-- permitir la accion de `subir` con una cantidad objetivo valida
+- permitir `pasar`, `pagar`, `subir` y `retirarse`
+- validar subidas minimas y cantidades a igualar
 - avanzar automaticamente entre `preflop`, `flop`, `turn` y `river`
-- mostrar cartas comunitarias segun avanza la mano
-- resolver el `showdown` al final de la mano si nadie se retira
+- revelar las cartas comunitarias segun la fase
+- resolver el `showdown` al final de `river`
 - evaluar combinaciones reales de `Texas Hold'em`
-- repartir el bote al ganador o repartirlo entre varios jugadores si hay empate
-- mostrar el resultado final de la mano y la combinacion ganadora
-- cerrar automaticamente la mano si solo queda un jugador activo
-- refrescar en tiempo real el detalle de una partida cuando cambia su estado
+- repartir el bote al ganador o a varios ganadores en caso de empate
+- mostrar el resultado final de la mano
+- refrescar en tiempo real el detalle de la partida mediante `WebSockets`
+- mostrar un contador de turno de `30` segundos para el jugador activo
+- retirar automaticamente al jugador si deja pasar el tiempo
+- ocultar por defecto las cartas privadas del jugador y mostrarlas solo al pasar el cursor
+- mostrar una puntuacion orientativa de la mano en escala `01/10` a `10/10` cuando se revela la zona privada
+
+## Como se prueba la version actual
+
+Flujo basico recomendado:
+
+1. abrir `http://127.0.0.1:8000/`
+2. registrar varias cuentas o usar cuentas de prueba locales
+3. comprobar que cada cuenta empieza con `2.000` fichas
+4. probar `Buscar partida` con dos usuarios distintos
+5. probar `Partida privada` creando una sala por codigo y entrando con otro usuario
+6. iniciar una mano y jugar hasta `showdown`
+7. comprobar que el saldo total cambia al entrar y salir de las partidas
+8. comprobar que el detalle de la mesa se refresca en tiempo real en varias ventanas
+9. comprobar que el hover sobre las cartas privadas revela las cartas y la puntuacion de mano
 
 ## Tiempo real
 
-La mesa de partida cuenta ya con una primera base de tiempo real mediante `WebSockets`.
+La mesa usa `WebSockets` para que varias ventanas de navegador vean cambios automaticamente.
 
-En la version actual, cuando alguien:
+Ahora mismo el detalle de partida se actualiza cuando:
 
-- se une a una partida
-- sale de una partida
-- inicia una mano
-- realiza una accion
+- un jugador entra en la mesa
+- un jugador sale de la mesa
+- se inicia una mano
+- un jugador actua
 
-los navegadores que esten viendo esa misma mesa se actualizan automaticamente.
-
-En la mesa tambien se muestra ya:
-
-- cuanto falta por igualar en tu turno
-- cual es la subida minima legal en ese momento
-- un campo para indicar hasta que cantidad quieres subir
-- quien ha ganado la mano al resolverse el showdown
-- si ha habido empate y como se ha repartido el bote
-
-Para facilitar las pruebas, la vista de detalle de partida muestra tambien un estado visible de conexion:
+La vista muestra tambien un estado visible de conexion:
 
 - `Tiempo real: conectando...`
 - `Tiempo real: conectado`
 - `Tiempo real: desconectado`
 - `Tiempo real: error de conexion`
 
-## Dependencias actuales
+## Estado actual del alcance
 
-La version actual utiliza estas dependencias principales:
+El proyecto ya cubre una parte importante del flujo jugable de `Nivel 1` y deja muy adelantada la base de `Nivel 2`.
 
-- `Django`
-- `Channels`
-- `Daphne`
+Lo mas importante que ya existe es:
 
-El siguiente bloque de trabajo sera encadenar varias manos seguidas dentro de una misma partida, rotando posiciones y ciegas.
+- autenticacion completa de usuario
+- economia basica con saldo total y fichas en mesa
+- partidas publicas y privadas
+- tiempo real basico
+- una mano de `Texas Hold'em` jugable hasta `showdown`
+
+Lo siguiente previsto es:
+
+- encadenar varias manos seguidas dentro de una misma partida
+- rotar posiciones y ciegas entre manos
+- consolidar historial, ranking persistente y trazabilidad

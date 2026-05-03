@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}pokerVitoria | Ranking{% endblock %}
+
+{% block barra_superior %}
+    <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">←</a>
+    <div></div>
+{% endblock %}
+
+{% block content %}
+    <h1 class="titulo-seccion">Ranking</h1>
+    <div class="panel-liso" style="flex:1; overflow-y:auto;">
+        <ul class="lista-vertical">
+            {% for jugador in jugadores %}
+                <li class="fila-lista">
+                    <strong class="truncado">{{ jugador.username }}</strong>
+                    <span class="truncado">{{ jugador.saldo_total }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

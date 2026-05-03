@@ -1,16 +1,19 @@
+import string
 from random import SystemRandom
 
 from django.utils import timezone
 
-from apps.partidas.evaluador import comparar_manos
+from apps.partidas.evaluador import comparar_manos, evaluar_mejor_mano
 from apps.partidas.models import (
     AccionMano,
     CartaPrivada,
     EstadoMano,
+    EstadoPartida,
     EstadoParticipacion,
     ManoPoker,
     ParticipacionPartida,
     PartidaPoker,
+    SolicitudPartidaPublica,
     TipoAccion,
 )
 
@@ -18,6 +21,172 @@ from apps.partidas.models import (
 VALORES_CARTAS = ("A", "K", "Q", "J", "10", "9", "8", "7", "6", "5", "4", "3", "2")
 PALOS_CARTAS = ("P", "C", "D", "T")
 ORDEN_FASES = [EstadoMano.PREFLOP, EstadoMano.FLOP, EstadoMano.TURN, EstadoMano.RIVER]
+ALFABETO_CODIGO_PRIVADO = string.ascii_uppercase + string.digits
+LONGITUD_CODIGO_PRIVADO = 10
+COMPRA_MAXIMA_PARTIDA = 200
+SEGUNDOS_TURNO = 30
+
+
+def generar_codigo_privado_unico() -> str:
+    """Genera un codigo alfanumerico unico para una partida privada."""
+
+    while True:
+        codigo = "".join(
+            SystemRandom().choice(ALFABETO_CODIGO_PRIVADO)
+            for _ in range(LONGITUD_CODIGO_PRIVADO)
+        )
+        if not PartidaPoker.objects.filter(codigo_privado=codigo).exists():
+            return codigo
+
+
+def normalizar_codigo_privado(codigo: str) -> str:
+    """Limpia y normaliza un codigo privado editable por el usuario."""
+
+    return "".join(caracter for caracter in codigo.upper().strip() if caracter.isalnum())
+
+
+def obtener_fichas_de_entrada(usuario) -> int:
+    """Devuelve las fichas con las que el usuario puede entrar a una partida."""
+
+    return min(COMPRA_MAXIMA_PARTIDA, usuario.saldo_total)
+
+
+def unir_usuario_a_partida(
+    partida: PartidaPoker,
+    usuario,
+    participacion_existente: ParticipacionPartida | None = None,
+) -> ParticipacionPartida:
+    """
+    Une a un usuario a una partida descontando su compra de entrada del saldo total.
+    """
+
+    fichas_entrada = obtener_fichas_de_entrada(usuario)
+    if fichas_entrada <= 0:
+        raise ValueError("No tienes fichas suficientes para entrar en una partida.")
+
+    asiento_libre = partida.obtener_primer_asiento_libre()
+    if asiento_libre is None:
+        raise ValueError("La partida ya esta completa.")
+
+    if participacion_existente and participacion_existente.estado == EstadoParticipacion.SALIO:
+        participacion_existente.numero_asiento = asiento_libre
+        participacion_existente.estado = EstadoParticipacion.UNIDO
+        participacion_existente.activa_en_mano = False
+        participacion_existente.salio_en = None
+        participacion_existente.fichas = fichas_entrada
+        participacion_existente.apuesta_en_ronda = 0
+        participacion_existente.ha_actuado_en_ronda = False
+        participacion_existente.save(
+            update_fields=[
+                "numero_asiento",
+                "estado",
+                "activa_en_mano",
+                "salio_en",
+                "fichas",
+                "apuesta_en_ronda",
+                "ha_actuado_en_ronda",
+            ]
+        )
+        usuario.saldo_total -= fichas_entrada
+        usuario.save(update_fields=["saldo_total"])
+        return participacion_existente
+
+    participacion = ParticipacionPartida.objects.create(
+        partida=partida,
+        usuario=usuario,
+        numero_asiento=asiento_libre,
+        estado=EstadoParticipacion.UNIDO,
+        fichas=fichas_entrada,
+    )
+    usuario.saldo_total -= fichas_entrada
+    usuario.save(update_fields=["saldo_total"])
+    return participacion
+
+
+def crear_partida_privada(usuario, codigo_privado: str) -> PartidaPoker:
+    """Crea una partida privada con codigo editable por el usuario."""
+
+    codigo_normalizado = normalizar_codigo_privado(codigo_privado)
+    if not codigo_normalizado:
+        raise ValueError("Debes indicar un codigo valido para la partida privada.")
+    if PartidaPoker.objects.filter(codigo_privado=codigo_normalizado).exists():
+        raise ValueError("Ya existe una partida privada con ese codigo.")
+
+    return PartidaPoker.objects.create(
+        nombre=f"Privada {codigo_normalizado}",
+        creador=usuario,
+        es_privada=True,
+        codigo_privado=codigo_normalizado,
+    )
+
+
+def iniciar_o_consultar_busqueda_publica(usuario):
+    """Busca o crea emparejamiento publico simple para el usuario indicado."""
+
+    participacion_activa = (
+        ParticipacionPartida.objects.select_related("partida")
+        .filter(
+            usuario=usuario,
+            estado__in=[
+                EstadoParticipacion.UNIDO,
+                EstadoParticipacion.LISTO,
+                EstadoParticipacion.JUGANDO,
+            ],
+            partida__es_privada=False,
+            partida__estado__in=[EstadoPartida.ESPERANDO, EstadoPartida.EN_CURSO],
+        )
+        .order_by("-unido_en")
+        .first()
+    )
+    if participacion_activa:
+        return participacion_activa.partida
+
+    solicitud, _ = SolicitudPartidaPublica.objects.get_or_create(usuario=usuario)
+    pareja = (
+        SolicitudPartidaPublica.objects.exclude(usuario=usuario)
+        .select_related("usuario")
+        .order_by("creada_en")
+        .first()
+    )
+    if pareja is None:
+        return None
+
+    partida = PartidaPoker.objects.create(
+        nombre=f"Partida publica {timezone.now().strftime('%H%M%S')}",
+        creador=pareja.usuario,
+        es_privada=False,
+    )
+    unir_usuario_a_partida(partida, pareja.usuario)
+    unir_usuario_a_partida(partida, usuario)
+    pareja.delete()
+    solicitud.delete()
+    return partida
+
+
+def cancelar_busqueda_publica(usuario) -> None:
+    """Elimina la solicitud de cola publica del usuario si existe."""
+
+    SolicitudPartidaPublica.objects.filter(usuario=usuario).delete()
+
+
+def obtener_puntuacion_orientativa(cartas: list[str]) -> int:
+    """Devuelve una puntuacion orientativa de 1 a 10 segun la mano actual."""
+
+    if len(cartas) < 5:
+        return 1
+    resultado = evaluar_mejor_mano(cartas)
+    mapa = {
+        0: 1,
+        1: 3,
+        2: 4,
+        3: 5,
+        4: 6,
+        5: 7,
+        6: 8,
+        7: 9,
+        8: 10,
+    }
+    return mapa[resultado["rango"][0]]
 
 
 def iniciar_mano_inicial(partida: PartidaPoker) -> ManoPoker:
@@ -46,6 +215,7 @@ def iniciar_mano_inicial(partida: PartidaPoker) -> ManoPoker:
         numero_mano=partida.manos.count() + 1,
         estado=EstadoMano.PREFLOP,
         turno_actual=turno_inicial,
+        turno_actual_desde=timezone.now(),
         incremento_minimo_subida=partida.ciega_grande,
     )
 
@@ -196,7 +366,8 @@ def ejecutar_accion(
         return
 
     mano.turno_actual = obtener_siguiente_turno(mano, participacion)
-    mano.save(update_fields=["turno_actual"])
+    mano.turno_actual_desde = timezone.now()
+    mano.save(update_fields=["turno_actual", "turno_actual_desde"])
 
 
 def obtener_siguiente_turno(
@@ -219,10 +390,27 @@ def obtener_siguiente_turno(
 def abandonar_partida(partida: PartidaPoker, participacion: ParticipacionPartida) -> None:
     """Permite a un jugador salir de una partida sin bloquear el testing."""
 
+    saldo_recuperado = participacion.fichas
+    usuario = participacion.usuario
+    usuario.saldo_total += saldo_recuperado
+    usuario.save(update_fields=["saldo_total"])
+
     participacion.estado = EstadoParticipacion.SALIO
     participacion.activa_en_mano = False
     participacion.salio_en = timezone.now()
-    participacion.save(update_fields=["estado", "activa_en_mano", "salio_en"])
+    participacion.fichas = 0
+    participacion.apuesta_en_ronda = 0
+    participacion.ha_actuado_en_ronda = False
+    participacion.save(
+        update_fields=[
+            "estado",
+            "activa_en_mano",
+            "salio_en",
+            "fichas",
+            "apuesta_en_ronda",
+            "ha_actuado_en_ronda",
+        ]
+    )
 
     mano = partida.manos.filter(estado__in=ORDEN_FASES).order_by("-creada_en").first()
     if mano is None:
@@ -240,7 +428,8 @@ def abandonar_partida(partida: PartidaPoker, participacion: ParticipacionPartida
 
     if mano.turno_actual_id == participacion.id:
         mano.turno_actual = obtener_siguiente_turno(mano, participacion)
-        mano.save(update_fields=["turno_actual"])
+        mano.turno_actual_desde = timezone.now()
+        mano.save(update_fields=["turno_actual", "turno_actual_desde"])
 
 
 def _publicar_ciegas(
@@ -303,6 +492,7 @@ def _avanzar_fase(mano: ManoPoker) -> None:
     mano.apuesta_actual_ronda = 0
     mano.incremento_minimo_subida = mano.partida.ciega_grande
     mano.turno_actual = participantes_activos[0] if participantes_activos else None
+    mano.turno_actual_desde = timezone.now() if participantes_activos else None
     mano.save(
         update_fields=[
             "estado",
@@ -311,6 +501,7 @@ def _avanzar_fase(mano: ManoPoker) -> None:
             "apuesta_actual_ronda",
             "incremento_minimo_subida",
             "turno_actual",
+            "turno_actual_desde",
         ]
     )
 
@@ -344,9 +535,18 @@ def _resolver_showdown(mano: ManoPoker) -> None:
 
     mano.estado = EstadoMano.FINALIZADA
     mano.turno_actual = None
+    mano.turno_actual_desde = None
     mano.ganador = ganadores[0] if len(ganadores) == 1 else None
     mano.descripcion_resultado = _construir_descripcion_showdown(ganadores, descripcion)
-    mano.save(update_fields=["estado", "turno_actual", "ganador", "descripcion_resultado"])
+    mano.save(
+        update_fields=[
+            "estado",
+            "turno_actual",
+            "turno_actual_desde",
+            "ganador",
+            "descripcion_resultado",
+        ]
+    )
     mano.ganadores.set(ganadores)
 
 
@@ -358,9 +558,18 @@ def _cerrar_mano_por_ganador_directo(
     _repartir_bote(mano.bote_total, [ganador])
     mano.estado = EstadoMano.FINALIZADA
     mano.turno_actual = None
+    mano.turno_actual_desde = None
     mano.ganador = ganador
     mano.descripcion_resultado = descripcion_resultado
-    mano.save(update_fields=["estado", "turno_actual", "ganador", "descripcion_resultado"])
+    mano.save(
+        update_fields=[
+            "estado",
+            "turno_actual",
+            "turno_actual_desde",
+            "ganador",
+            "descripcion_resultado",
+        ]
+    )
     mano.ganadores.set([ganador])
 
 

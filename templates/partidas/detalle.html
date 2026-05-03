@@ -1,171 +1,176 @@
 {% extends "base.html" %}
 
-{% block title %}Pokervitoria | {{ partida.nombre }}{% endblock %}
+{% block title %}pokerVitoria | {{ partida.nombre }}{% endblock %}
+
+{% block barra_superior %}
+    {% if ya_unido %}
+        <form method="post" action="{% url 'partidas:abandonar' partida.pk %}" data-confirmacion="¿Seguro que quieres salir de la partida? Si abandonas una mano en curso, pierdes las fichas que ya hayas puesto en juego.">
+            {% csrf_token %}
+            <button class="boton-icono boton-confirmacion" type="submit" aria-label="Salir de la partida">←</button>
+        </form>
+    {% else %}
+        <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">←</a>
+    {% endif %}
+    <div class="apilado texto-centro" style="margin-left:auto;">
+        <p id="estado-tiempo-real" class="micro" style="margin:0;"><strong>Tiempo real:</strong> conectando...</p>
+    </div>
+{% endblock %}
 
 {% block content %}
-<article>
-    <h1>{{ partida.nombre }}</h1>
-    <p id="estado-tiempo-real"><strong>Tiempo real:</strong> conectando...</p>
-    <p><strong>Estado:</strong> {{ partida.get_estado_display }}</p>
-    <p><strong>Creador:</strong> {{ partida.creador|default:"No definido" }}</p>
-    <p><strong>Ciegas:</strong> {{ partida.ciega_pequena }} / {{ partida.ciega_grande }}</p>
-    <p><strong>Jugadores:</strong> {{ partida.numero_jugadores }} / {{ partida.maximo_jugadores }}</p>
+    <div class="apilado texto-centro">
+        <h1 class="titulo-seccion truncado">{{ partida.nombre }}</h1>
+        <p class="texto-normal">
+            {% if partida.es_privada %}
+                Partida privada{% if partida.codigo_privado %} · codigo {{ partida.codigo_privado }}{% endif %}
+            {% else %}
+                Partida publica
+            {% endif %}
+        </p>
+    </div>
 
-    <div class="acciones">
+    <div class="jugadores-mesa">
+        {% for participacion in participantes_visibles %}
+            <div class="jugador-mesa {% if not participacion.activa_en_mano and mano_actual and participacion.estado == 'jugando' %}jugador-retirado{% endif %}">
+                <span class="avatar">{{ participacion.usuario.username|slice:":1"|upper }}</span>
+                <strong class="truncado">{{ participacion.usuario.username }}</strong>
+                <span class="truncado micro">{{ participacion.fichas }} fichas</span>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="panel-liso apilado texto-centro">
+        <p class="texto-normal"><strong>Estado:</strong> {{ partida.get_estado_display }}</p>
+        <p class="texto-normal"><strong>Ciegas:</strong> {{ partida.ciega_pequena }} / {{ partida.ciega_grande }}</p>
+        <p class="texto-normal"><strong>Jugadores:</strong> {{ partida.numero_jugadores }} / {{ partida.maximo_jugadores }}</p>
+
         {% if ya_unido %}
-            <span>Ya estas unido a esta partida.</span>
-            <form method="post" action="{% url 'partidas:abandonar' partida.pk %}">
-                {% csrf_token %}
-                <button type="submit">Salir de la partida</button>
-            </form>
+            <p class="texto-normal">Ya estas unido a esta partida.</p>
         {% elif asiento_libre %}
             <form method="post" action="{% url 'partidas:unirse' partida.pk %}">
                 {% csrf_token %}
-                <button type="submit">Unirme a la partida</button>
+                <button class="boton" type="submit">Entrar en partida</button>
             </form>
         {% else %}
-            <span>La partida esta completa.</span>
+            <p class="texto-normal">La partida esta completa.</p>
         {% endif %}
-        {% if puede_iniciarse %}
+
+        {% if puede_iniciarse and ya_unido %}
             <form method="post" action="{% url 'partidas:iniciar' partida.pk %}">
                 {% csrf_token %}
-                <button type="submit">Iniciar partida</button>
+                <button class="boton" type="submit">Iniciar partida</button>
             </form>
         {% endif %}
-        <a class="boton" href="{% url 'partidas:lista' %}">Volver al listado</a>
     </div>
 
     {% if mano_actual %}
-        <h2>Mano actual</h2>
-        <p><strong>Numero de mano:</strong> {{ mano_actual.numero_mano }}</p>
-        <p><strong>Estado de la mano:</strong> {{ mano_actual.get_estado_display }}</p>
-        <p><strong>Turno actual:</strong> {{ mano_actual.turno_actual.usuario|default:"Sin turno activo" }}</p>
-        <p><strong>Bote total:</strong> {{ mano_actual.bote_total }}</p>
-        <p><strong>Apuesta actual de la ronda:</strong> {{ mano_actual.apuesta_actual_ronda }}</p>
-        <p><strong>Subida minima actual:</strong> {{ mano_actual.incremento_minimo_subida }}</p>
-        {% if ganadores_mano %}
-            {% if ganadores_mano|length == 1 %}
-                <p><strong>Ganador de la mano:</strong> {{ ganadores_mano.0.usuario }}</p>
-            {% else %}
-                <p><strong>Ganadores de la mano:</strong></p>
-                <ul>
-                    {% for ganador in ganadores_mano %}
-                        <li>{{ ganador.usuario }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        {% elif mano_actual.ganador %}
-            <p><strong>Ganador provisional de la mano:</strong> {{ mano_actual.ganador.usuario }}</p>
-        {% endif %}
-        {% if mano_actual.descripcion_resultado %}
-            <p><strong>Resultado:</strong> {{ mano_actual.descripcion_resultado }}</p>
-        {% endif %}
-
-        {% if cartas_comunitarias %}
-            <p><strong>Cartas comunitarias:</strong></p>
-            <ul>
-                {% for carta in cartas_comunitarias %}
-                    <li>{{ carta }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-
-        {% if cartas_privadas %}
-            <p><strong>Tus cartas privadas:</strong></p>
-            <ul>
-                {% for carta in cartas_privadas %}
-                    <li>{{ carta.codigo_visible }}</li>
-                {% endfor %}
-            </ul>
-        {% elif ya_unido %}
-            <p>Todavia no tienes cartas privadas repartidas en esta mano.</p>
-        {% endif %}
-
-        {% if es_mi_turno and mano_actual.estado != "finalizada" %}
-            <div class="acciones">
-                {% if apuesta_por_igualar == 0 %}
-                    <form method="post" action="{% url 'partidas:accion' partida.pk %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="tipo_accion" value="pasar">
-                        <button type="submit">Pasar</button>
-                    </form>
-                {% else %}
-                    <form method="post" action="{% url 'partidas:accion' partida.pk %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="tipo_accion" value="igualar">
-                        <button type="submit">Igualar ({{ apuesta_por_igualar }})</button>
-                    </form>
+        <div class="cartas-comunitarias">
+            {% for carta in cartas_comunitarias %}
+                <div class="carta">{{ carta }}</div>
+            {% endfor %}
+            {% for posicion in "12345" %}
+                {% if forloop.counter > cartas_comunitarias|length %}
+                    <div class="carta carta--oculta"></div>
                 {% endif %}
-                {% if objetivo_maximo_subida >= objetivo_minimo_subida %}
-                    <form method="post" action="{% url 'partidas:accion' partida.pk %}">
+            {% endfor %}
+        </div>
+
+        <div class="panel-liso apilado">
+            <p class="texto-normal"><strong>Mano {{ mano_actual.numero_mano }}</strong> · {{ mano_actual.get_estado_display }}</p>
+            <p class="texto-normal"><strong>Bote total:</strong> {{ mano_actual.bote_total }}</p>
+            {% if mano_actual.descripcion_resultado %}
+                <p class="texto-normal"><strong>Resultado:</strong> {{ mano_actual.descripcion_resultado }}</p>
+            {% endif %}
+            <div class="lista-vertical">
+                {% for accion in acciones_recientes %}
+                    <div class="fila-lista">
+                        <span class="truncado">Turno {{ accion.orden }} · {{ accion.participacion.usuario.username }}</span>
+                        <span class="truncado">{{ accion.get_tipo_display }}</span>
+                    </div>
+                {% empty %}
+                    <p class="texto-normal">Todavia no se ha registrado ninguna accion en esta mano.</p>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if ya_unido and participacion_actual %}
+        <div class="panel-jugador">
+            <div class="mano-privada panel-liso">
+                <div class="cartas-privadas">
+                    {% for carta in cartas_privadas %}
+                        <div class="carta">
+                            <span></span>
+                            <span>{{ carta.codigo_visible }}</span>
+                        </div>
+                    {% empty %}
+                        <div class="carta carta--oculta"></div>
+                        <div class="carta carta--oculta"></div>
+                    {% endfor %}
+                </div>
+                <strong class="truncado">{{ participacion_actual.usuario.username }}</strong>
+                <span class="truncado">{{ participacion_actual.fichas }} fichas en partida</span>
+                {% if puntuacion_orientativa %}
+                    <span class="marcador-mano" style="color: {{ color_puntuacion_orientativa }};">
+                        {{ puntuacion_orientativa|stringformat:"02d" }}/10
+                    </span>
+                {% endif %}
+            </div>
+
+            {% if mano_actual %}
+                <div class="bloque-acciones-partida">
+                    {% if apuesta_por_igualar > 0 %}
+                        <form method="post" action="{% url 'partidas:accion' partida.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="tipo_accion" value="igualar">
+                            <button class="boton-accion {% if not es_mi_turno %}boton-deshabilitado{% endif %}" type="submit" {% if not es_mi_turno %}disabled{% endif %}>
+                                Pagar {{ apuesta_por_igualar }}
+                            </button>
+                        </form>
+                    {% else %}
+                        <form method="post" action="{% url 'partidas:accion' partida.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="tipo_accion" value="pasar">
+                            <button class="boton-accion {% if not es_mi_turno %}boton-deshabilitado{% endif %}" type="submit" {% if not es_mi_turno %}disabled{% endif %}>
+                                Pasar
+                            </button>
+                        </form>
+                    {% endif %}
+                    <form method="post" action="{% url 'partidas:accion' partida.pk %}" class="fila-acciones-flex" id="formulario-subida">
                         {% csrf_token %}
                         <input type="hidden" name="tipo_accion" value="subir">
-                        <label for="objetivo_subida">Subir hasta:</label>
+                        <button class="boton-accion" type="submit" id="boton-subir" {% if not es_mi_turno or not puede_subir %}disabled{% endif %}>Subir</button>
                         <input
+                            class="entrada-texto"
                             id="objetivo_subida"
                             name="objetivo_subida"
                             type="number"
                             min="{{ objetivo_minimo_subida }}"
                             max="{{ objetivo_maximo_subida }}"
                             step="1"
-                            value="{{ objetivo_minimo_subida }}"
-                            required
+                            placeholder="Cantidad"
+                            {% if not es_mi_turno or not puede_subir %}disabled{% endif %}
                         >
-                        <button type="submit">Subir</button>
                     </form>
-                {% else %}
-                    <p>No tienes fichas suficientes para realizar una subida legal.</p>
-                {% endif %}
-                <form method="post" action="{% url 'partidas:accion' partida.pk %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="tipo_accion" value="retirarse">
-                    <button type="submit">Retirarse</button>
-                </form>
-            </div>
-            <p>
-                {% if apuesta_por_igualar > 0 %}
-                    Te faltan {{ apuesta_por_igualar }} fichas por igualar.
-                {% else %}
-                    No tienes fichas pendientes por igualar en esta ronda.
-                {% endif %}
-            </p>
-        {% elif ya_unido and mano_actual.estado != "finalizada" %}
-            <p>No es tu turno en este momento.</p>
-        {% endif %}
-
-        <h3>Acciones registradas</h3>
-        {% if acciones_recientes %}
-            <ul>
-                {% for accion in acciones_recientes %}
-                    <li>
-                        Turno {{ accion.orden }}:
-                        {{ accion.participacion.usuario }}
-                        - {{ accion.get_tipo_display }}
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>Todavia no se ha registrado ninguna accion en esta mano.</p>
-        {% endif %}
+                    <form method="post" action="{% url 'partidas:accion' partida.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="tipo_accion" value="retirarse">
+                        <button class="boton-secundario {% if not es_mi_turno %}boton-deshabilitado{% endif %}" type="submit" {% if not es_mi_turno %}disabled{% endif %}>
+                            Retirarse
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
     {% endif %}
 
-    <h2>Participantes</h2>
-    {% if partida.participaciones.all %}
-        <ul>
-            {% for participacion in partida.participaciones.all %}
-                <li>
-                    Asiento {{ participacion.numero_asiento }}:
-                    {{ participacion.usuario }}
-                    ({{ participacion.get_estado_display }})
-                    - fichas: {{ participacion.fichas }}
-                    - apuesta en ronda: {{ participacion.apuesta_en_ronda }}
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>Todavia no se ha unido ningun jugador.</p>
+    {% if es_mi_turno and turno_expira_en %}
+        <div class="reloj-turno">
+            <span id="contador-turno">30</span>s
+        </div>
     {% endif %}
-</article>
+{% endblock %}
+
+{% block scripts %}
 <script>
     (() => {
         const partidaId = "{{ partida.pk }}";
@@ -182,20 +187,52 @@
             const data = JSON.parse(event.data);
             if (data.tipo === "refrescar_partida" && !recargaProgramada) {
                 recargaProgramada = true;
-                window.setTimeout(() => {
-                    window.location.reload();
-                }, 250);
+                window.setTimeout(() => window.location.reload(), 220);
             }
         });
 
         socket.addEventListener("close", () => {
             estadoTiempoReal.innerHTML = "<strong>Tiempo real:</strong> desconectado";
-            console.warn("Canal en tiempo real desconectado.");
         });
 
         socket.addEventListener("error", () => {
             estadoTiempoReal.innerHTML = "<strong>Tiempo real:</strong> error de conexion";
         });
+
+        const campoSubida = document.getElementById("objetivo_subida");
+        const botonSubir = document.getElementById("boton-subir");
+        if (campoSubida && botonSubir && !botonSubir.disabled) {
+            const sincronizarSubida = () => {
+                if (!campoSubida.value.trim()) {
+                    botonSubir.disabled = true;
+                    botonSubir.classList.add("boton-deshabilitado");
+                    return;
+                }
+                botonSubir.disabled = false;
+                botonSubir.classList.remove("boton-deshabilitado");
+            };
+            botonSubir.disabled = true;
+            botonSubir.classList.add("boton-deshabilitado");
+            campoSubida.addEventListener("input", sincronizarSubida);
+            sincronizarSubida();
+        }
+
+        const contador = document.getElementById("contador-turno");
+        {% if es_mi_turno and turno_expira_en %}
+            if (contador) {
+                const expiraEn = new Date("{{ turno_expira_en|date:'c' }}").getTime();
+                const formularioRetirada = document.querySelector('form input[value="retirarse"]')?.closest("form");
+                const actualizar = () => {
+                    const restante = Math.max(0, Math.ceil((expiraEn - Date.now()) / 1000));
+                    contador.textContent = restante;
+                    if (restante <= 0 && formularioRetirada) {
+                        formularioRetirada.submit();
+                    }
+                };
+                actualizar();
+                window.setInterval(actualizar, 1000);
+            }
+        {% endif %}
     })();
 </script>
 {% endblock %}

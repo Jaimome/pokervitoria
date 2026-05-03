@@ -1,15 +1,45 @@
 {% extends "base.html" %}
 
-{% block title %}Pokervitoria | Registro{% endblock %}
+{% block title %}pokerVitoria | Registrarse{% endblock %}
+
+{% block barra_superior %}
+    <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">←</a>
+    <div></div>
+{% endblock %}
 
 {% block content %}
-<article>
-    <h1>Crear cuenta</h1>
-    <p>Este formulario crea un usuario nuevo y abre la sesion automaticamente.</p>
-    <form method="post">
+    <h1 class="titulo-seccion">Registrarse</h1>
+
+    <form class="formulario" method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Registrarme</button>
+        <div class="grupo-campo">
+            <label class="etiqueta" for="{{ form.username.id_for_label }}">Nombre de usuario</label>
+            {{ form.username }}
+        </div>
+        <div class="grupo-campo">
+            <label class="etiqueta" for="{{ form.email.id_for_label }}">Correo electronico</label>
+            {{ form.email }}
+        </div>
+        <div class="grupo-campo">
+            <label class="etiqueta" for="{{ form.password1.id_for_label }}">Contrasena</label>
+            {{ form.password1 }}
+        </div>
+        <div class="grupo-campo">
+            <label class="etiqueta" for="{{ form.password2.id_for_label }}">Contrasena (confirmacion)</label>
+            {{ form.password2 }}
+        </div>
+        <button class="boton" type="submit">Crear</button>
+        <div class="zona-errores">
+            {% if form.errors %}
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <p class="texto-normal">{{ error }}</p>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <p class="texto-normal">{{ error }}</p>
+                {% endfor %}
+            {% endif %}
+        </div>
     </form>
-</article>
 {% endblock %}

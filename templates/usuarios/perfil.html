@@ -1,14 +1,27 @@
 {% extends "base.html" %}
 
-{% block title %}Pokervitoria | Perfil{% endblock %}
+{% block title %}pokerVitoria | Perfil{% endblock %}
+
+{% block barra_superior %}
+    <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">←</a>
+    <div></div>
+{% endblock %}
 
 {% block content %}
-<article>
-    <h1>Perfil de usuario</h1>
-    <p>Esta pagina confirma que el sistema de autenticacion ya funciona.</p>
-    <ul>
-        <li><strong>Usuario:</strong> {{ user.username }}</li>
-        <li><strong>Correo electronico:</strong> {{ user.email|default:"No definido" }}</li>
-    </ul>
-</article>
+    <div class="panel-jugador texto-centro">
+        <span class="avatar" style="width:5rem;height:5rem;font-size:1.8rem;margin:0 auto;">
+            {{ user.username|slice:":1"|upper }}
+        </span>
+        <h1 class="titulo-seccion">{{ user.username }}</h1>
+        <p class="texto-normal">{{ user.email|default:"Sin correo electronico" }}</p>
+        <p class="saldo">{{ user.saldo_total }} fichas</p>
+        <form method="post" action="{% url 'usuarios:cerrar_sesion' %}" data-confirmacion="¿Seguro que quieres cerrar sesion?">
+            {% csrf_token %}
+            <button class="boton boton-confirmacion" type="submit">Cerrar sesion</button>
+        </form>
+        <form method="post" action="{% url 'usuarios:borrar_cuenta' %}" data-confirmacion="¿Seguro que quieres borrar tu cuenta? Esta accion no se puede deshacer.">
+            {% csrf_token %}
+            <button class="boton-secundario boton-confirmacion" type="submit">Borrar cuenta</button>
+        </form>
+    </div>
 {% endblock %}
