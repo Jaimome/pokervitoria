@@ -29,7 +29,7 @@ La version actual del proyecto ya permite:
 - arrancar una aplicacion web funcional en `Django`
 - registrar usuarios
 - iniciar y cerrar sesion
-- mostrar el nombre mostrado del usuario autenticado en la navegacion
+- mostrar el usuario autenticado en la navegacion
 - consultar un perfil autenticado
 - persistir usuarios, partidas, participaciones y manos en base de datos local
 - crear partidas desde navegador

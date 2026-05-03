@@ -109,7 +109,7 @@
             {% if user.is_authenticated %}
                 <a href="{% url 'partidas:lista' %}">Partidas</a>
                 <a href="{% url 'usuarios:perfil' %}">
-                    {{ user.nombre_mostrado|default:user.username }}
+                    {{ user.username }}
                 </a>
                 <form method="post" action="{% url 'usuarios:cerrar_sesion' %}">
                     {% csrf_token %}

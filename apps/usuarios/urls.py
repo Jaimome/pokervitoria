@@ -1,6 +1,7 @@
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path
 
+from apps.usuarios.forms import FormularioInicioSesion
 from apps.usuarios.views import VistaPerfil, VistaRegistroUsuario
 
 
@@ -11,6 +12,7 @@ urlpatterns = [
     path(
         "iniciar-sesion/",
         LoginView.as_view(
+            authentication_form=FormularioInicioSesion,
             template_name="usuarios/iniciar_sesion.html",
             redirect_authenticated_user=True,
         ),

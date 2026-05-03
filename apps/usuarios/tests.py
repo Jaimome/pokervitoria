@@ -10,7 +10,6 @@ class AutenticacionTests(TestCase):
             reverse("usuarios:registro"),
             data={
                 "username": "ana",
-                "nombre_mostrado": "Ana",
                 "email": "ana@example.com",
                 "password1": "ClaveSegura123!",
                 "password2": "ClaveSegura123!",

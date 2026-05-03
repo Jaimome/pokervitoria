@@ -10,15 +10,9 @@ class Usuario(AbstractUser):
     de Django a mitad del desarrollo.
     """
 
-    nombre_mostrado = models.CharField(
-        max_length=50,
-        blank=True,
-        help_text="Nombre publico mostrado dentro de la aplicacion.",
-    )
-
     class Meta:
         verbose_name = "usuario"
         verbose_name_plural = "usuarios"
 
     def __str__(self) -> str:
-        return self.nombre_mostrado or self.username
+        return self.username

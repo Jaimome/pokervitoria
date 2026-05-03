@@ -7,8 +7,7 @@
     <h1>Perfil de usuario</h1>
     <p>Esta pagina confirma que el sistema de autenticacion ya funciona.</p>
     <ul>
-        <li><strong>Nombre de usuario:</strong> {{ user.username }}</li>
-        <li><strong>Nombre mostrado:</strong> {{ user.nombre_mostrado|default:"No definido" }}</li>
+        <li><strong>Usuario:</strong> {{ user.username }}</li>
         <li><strong>Correo electronico:</strong> {{ user.email|default:"No definido" }}</li>
     </ul>
 </article>

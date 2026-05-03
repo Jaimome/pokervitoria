@@ -14,4 +14,4 @@ class AdministradorEstadisticasJugador(admin.ModelAdmin):
         "racha_actual",
         "mejor_racha",
     )
-    search_fields = ("usuario__username", "usuario__nombre_mostrado", "usuario__email")
+    search_fields = ("usuario__username", "usuario__email")

@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
 from apps.usuarios.models import Usuario
 
@@ -11,8 +11,13 @@ class FormularioRegistroUsuario(UserCreationForm):
 
     class Meta(UserCreationForm.Meta):
         model = Usuario
-        fields = ("username", "nombre_mostrado", "email")
+        fields = ("username", "email")
         labels = {
-            "username": "Nombre de usuario",
-            "nombre_mostrado": "Nombre mostrado",
+            "username": "Usuario",
         }
+
+
+class FormularioInicioSesion(AuthenticationForm):
+    """Formulario de inicio de sesion con terminologia unificada."""
+
+    username = forms.CharField(label="Usuario")

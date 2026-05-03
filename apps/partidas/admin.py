@@ -32,7 +32,7 @@ class AdministradorPartidaPoker(admin.ModelAdmin):
 class AdministradorParticipacionPartida(admin.ModelAdmin):
     list_display = ("partida", "usuario", "numero_asiento", "fichas", "estado", "es_ganador")
     list_filter = ("estado", "es_ganador")
-    search_fields = ("partida__nombre", "usuario__username", "usuario__nombre_mostrado")
+    search_fields = ("partida__nombre", "usuario__username")
 
 
 @admin.register(ManoPoker)
