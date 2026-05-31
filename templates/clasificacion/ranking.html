@@ -3,7 +3,7 @@
 {% block title %}pokerVitoria | Ranking{% endblock %}
 
 {% block barra_superior %}
-    <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">←</a>
+    <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">&larr;</a>
     <div></div>
 {% endblock %}
 
@@ -13,7 +13,11 @@
         <ul class="lista-vertical">
             {% for jugador in jugadores %}
                 <li class="fila-lista">
-                    <strong class="truncado">{{ jugador.username }}</strong>
+                    {% if jugador.pk == user.pk %}
+                        <strong class="truncado">{{ jugador.username }}</strong>
+                    {% else %}
+                        <span class="truncado">{{ jugador.username }}</span>
+                    {% endif %}
                     <span class="truncado">{{ jugador.saldo_total }}</span>
                 </li>
             {% endfor %}

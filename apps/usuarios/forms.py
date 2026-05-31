@@ -8,9 +8,9 @@ class FormularioRegistroUsuario(UserCreationForm):
     """Formulario minimo de registro para la primera version del proyecto."""
 
     username = forms.CharField(label="Nombre de usuario")
-    email = forms.EmailField(label="Correo electronico")
-    password1 = forms.CharField(label="Contrasena", widget=forms.PasswordInput)
-    password2 = forms.CharField(label="Contrasena (confirmacion)", widget=forms.PasswordInput)
+    email = forms.EmailField(label="Correo electrónico")
+    password1 = forms.CharField(label="Contraseña", widget=forms.PasswordInput)
+    password2 = forms.CharField(label="Contraseña (confirmación)", widget=forms.PasswordInput)
 
     class Meta(UserCreationForm.Meta):
         model = Usuario
@@ -25,10 +25,10 @@ class FormularioRegistroUsuario(UserCreationForm):
 
 
 class FormularioInicioSesion(AuthenticationForm):
-    """Formulario de inicio de sesion con terminologia unificada."""
+    """Formulario de inicio de sesión con terminología unificada."""
 
     username = forms.CharField(label="Nombre de usuario")
-    password = forms.CharField(label="Contrasena", widget=forms.PasswordInput)
+    password = forms.CharField(label="Contraseña", widget=forms.PasswordInput)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

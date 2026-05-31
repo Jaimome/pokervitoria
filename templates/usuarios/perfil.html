@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 
 {% block title %}pokerVitoria | Perfil{% endblock %}
+{% block pantalla_clase %}pantalla--centrada{% endblock %}
+{% block contenido_clase %}contenido-centrado{% endblock %}
 
 {% block barra_superior %}
-    <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">←</a>
+    <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">&larr;</a>
     <div></div>
 {% endblock %}
 
@@ -13,15 +15,15 @@
             {{ user.username|slice:":1"|upper }}
         </span>
         <h1 class="titulo-seccion">{{ user.username }}</h1>
-        <p class="texto-normal">{{ user.email|default:"Sin correo electronico" }}</p>
+        <p class="texto-normal">{{ user.email|default:"Sin correo electr&oacute;nico" }}</p>
         <p class="saldo">{{ user.saldo_total }} fichas</p>
-        <form method="post" action="{% url 'usuarios:cerrar_sesion' %}" data-confirmacion="¿Seguro que quieres cerrar sesion?">
+        <form method="post" action="{% url 'usuarios:cerrar_sesion' %}" data-confirmacion="&iquest;Seguro que quieres cerrar sesi&oacute;n?">
             {% csrf_token %}
-            <button class="boton boton-confirmacion" type="submit">Cerrar sesion</button>
+            <button class="boton boton-confirmacion" type="submit">Cerrar sesi&oacute;n</button>
         </form>
-        <form method="post" action="{% url 'usuarios:borrar_cuenta' %}" data-confirmacion="¿Seguro que quieres borrar tu cuenta? Esta accion no se puede deshacer.">
+        <form method="post" action="{% url 'usuarios:borrar_cuenta' %}" data-confirmacion="&iquest;Seguro que quieres borrar tu cuenta? Esta acci&oacute;n no se puede deshacer.">
             {% csrf_token %}
-            <button class="boton-secundario boton-confirmacion" type="submit">Borrar cuenta</button>
+            <button class="boton boton-confirmacion accion-destruccion" type="submit">Borrar cuenta</button>
         </form>
     </div>
 {% endblock %}

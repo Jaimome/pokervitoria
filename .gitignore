@@ -16,6 +16,8 @@ staticfiles/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.runserver.*.log
+.runserver-*.log
 
 # Editors and OS
 .idea/

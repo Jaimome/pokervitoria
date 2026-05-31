@@ -1,37 +1,41 @@
 {% extends "base.html" %}
+{% load texto %}
 
-{% block title %}pokerVitoria | Iniciar sesion{% endblock %}
+{% block title %}pokerVitoria | Iniciar sesi&oacute;n{% endblock %}
+{% block pantalla_clase %}pantalla--centrada{% endblock %}
 
 {% block barra_superior %}
-    <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">←</a>
+    <a class="boton-icono" href="{% url 'nucleo:inicio' %}" aria-label="Volver">&larr;</a>
     <div></div>
 {% endblock %}
 
 {% block content %}
-    <h1 class="titulo-seccion">Iniciar sesion</h1>
+    <div class="panel-formulario-central">
+        <h1 class="titulo-seccion">Iniciar sesi&oacute;n</h1>
 
-    <form class="formulario" method="post">
-        {% csrf_token %}
-        <div class="grupo-campo">
-            <label class="etiqueta" for="{{ form.username.id_for_label }}">Nombre de usuario</label>
-            {{ form.username }}
-        </div>
-        <div class="grupo-campo">
-            <label class="etiqueta" for="{{ form.password.id_for_label }}">Contrasena</label>
-            {{ form.password }}
-        </div>
-        <button class="boton" type="submit">Entrar</button>
-        <div class="zona-errores">
+        <form class="formulario" method="post">
+            {% csrf_token %}
+            <div class="grupo-campo">
+                <label class="etiqueta" for="{{ form.username.id_for_label }}">Nombre de usuario</label>
+                {{ form.username }}
+            </div>
+            <div class="grupo-campo">
+                <label class="etiqueta" for="{{ form.password.id_for_label }}">Contrase&ntilde;a</label>
+                {{ form.password }}
+            </div>
+            <button class="boton" type="submit">Entrar</button>
             {% if form.errors %}
-                {% for field in form %}
-                    {% for error in field.errors %}
-                        <p class="texto-normal">{{ error }}</p>
+                <div class="zona-errores">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <p class="texto-normal">{{ error|corregir_mojibake }}</p>
+                        {% endfor %}
                     {% endfor %}
-                {% endfor %}
-                {% for error in form.non_field_errors %}
-                    <p class="texto-normal">{{ error }}</p>
-                {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <p class="texto-normal">{{ error|corregir_mojibake }}</p>
+                    {% endfor %}
+                </div>
             {% endif %}
-        </div>
-    </form>
+        </form>
+    </div>
 {% endblock %}

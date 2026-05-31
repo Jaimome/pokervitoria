@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import IntegrityError
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
 from django.views import View
@@ -17,6 +17,7 @@ from apps.partidas.models import (
     PartidaPoker,
     SolicitudPartidaPublica,
     TipoAccion,
+    formatear_codigo_carta,
 )
 from apps.partidas.servicios import (
     SEGUNDOS_TURNO,
@@ -63,7 +64,7 @@ class VistaCrearPartida(LoginRequiredMixin, CreateView):
 
 
 class VistaPartidaPrivada(LoginRequiredMixin, TemplateView):
-    """Pantalla para crear o entrar en una partida privada por codigo."""
+    """Pantalla para crear o entrar en una partida privada por código."""
 
     template_name = "partidas/privada.html"
 
@@ -78,7 +79,10 @@ class VistaPartidaPrivada(LoginRequiredMixin, TemplateView):
         return context
 
     def post(self, request, *args, **kwargs):
-        formulario = FormularioPartidaPrivada(request.POST)
+        datos_formulario = request.POST.copy()
+        if not datos_formulario.get("codigo_creacion"):
+            datos_formulario["codigo_creacion"] = generar_codigo_privado_unico()
+        formulario = FormularioPartidaPrivada(datos_formulario)
         accion = request.POST.get("accion")
         if accion == "crear":
             codigo = formulario.data.get("codigo_creacion", "")
@@ -109,7 +113,7 @@ class VistaPartidaPrivada(LoginRequiredMixin, TemplateView):
                 partida = PartidaPoker.objects.get(es_privada=True, codigo_privado=codigo)
             except PartidaPoker.DoesNotExist:
                 formulario.is_valid()
-                formulario.add_error("codigo_entrada", "No existe ninguna partida privada con ese codigo.")
+                formulario.add_error("codigo_entrada", "No existe ninguna partida privada con ese código.")
                 return self.render_to_response(
                     self.get_context_data(formulario=formulario)
                 )
@@ -138,9 +142,12 @@ class VistaBuscarPartida(LoginRequiredMixin, TemplateView):
     template_name = "partidas/buscar.html"
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+
         partida = iniciar_o_consultar_busqueda_publica(request.user)
         if partida is not None:
-            messages.success(request, "Se ha encontrado una partida publica.")
+            messages.success(request, "Se ha encontrado una partida pública.")
             return redirect("partidas:detalle", pk=partida.pk)
         return super().dispatch(request, *args, **kwargs)
 
@@ -153,12 +160,33 @@ class VistaBuscarPartida(LoginRequiredMixin, TemplateView):
         return context
 
 
+class VistaEstadoBusquedaPartida(LoginRequiredMixin, View):
+    """Devuelve el estado de la búsqueda pública sin recargar la pantalla."""
+
+    def get(self, request, *args, **kwargs):
+        partida = iniciar_o_consultar_busqueda_publica(request.user)
+        if partida is not None:
+            return JsonResponse(
+                {
+                    "partida_encontrada": True,
+                    "url": reverse("partidas:detalle", kwargs={"pk": partida.pk}),
+                }
+            )
+
+        return JsonResponse(
+            {
+                "partida_encontrada": False,
+                "usuarios_conectados": contar_usuarios_conectados(),
+            }
+        )
+
+
 class VistaCancelarBusquedaPartida(LoginRequiredMixin, View):
-    """Cancela la busqueda publica actual del usuario."""
+    """Cancela la búsqueda pública actual del usuario."""
 
     def post(self, request, *args, **kwargs):
         cancelar_busqueda_publica(request.user)
-        messages.info(request, "Busqueda publica cancelada.")
+        messages.info(request, "Búsqueda pública cancelada.")
         return redirect("nucleo:inicio")
 
 
@@ -225,7 +253,12 @@ class VistaDetallePartida(LoginRequiredMixin, DetailView):
             else 0
         )
         context["cartas_comunitarias"] = (
-            mano_actual.cartas_comunitarias_visibles() if mano_actual else []
+            [
+                formatear_codigo_carta(carta)
+                for carta in mano_actual.cartas_comunitarias_visibles()
+            ]
+            if mano_actual
+            else []
         )
         context["puede_subir"] = bool(
             participacion_actual
@@ -246,6 +279,11 @@ class VistaDetallePartida(LoginRequiredMixin, DetailView):
             )
         else:
             context["turno_expira_en"] = None
+        context["nombre_turno_actual"] = (
+            mano_actual.turno_actual.usuario.username
+            if mano_actual and mano_actual.turno_actual
+            else None
+        )
         return context
 
 
@@ -308,7 +346,7 @@ class VistaAccionPartida(LoginRequiredMixin, View):
         tipo_accion = request.POST.get("tipo_accion", "")
 
         if mano is None or participacion is None:
-            messages.error(request, "No se puede procesar la accion solicitada.")
+            messages.error(request, "No se puede procesar la acción solicitada.")
             return redirect("partidas:detalle", pk=partida.pk)
 
         if tipo_accion not in {
@@ -317,7 +355,7 @@ class VistaAccionPartida(LoginRequiredMixin, View):
             TipoAccion.SUBIR,
             TipoAccion.RETIRARSE,
         }:
-            messages.error(request, "La accion indicada no es valida.")
+            messages.error(request, "La acción indicada no es válida.")
             return redirect("partidas:detalle", pk=partida.pk)
 
         objetivo_subida = None
@@ -328,7 +366,7 @@ class VistaAccionPartida(LoginRequiredMixin, View):
             except ValueError:
                 messages.error(
                     request,
-                    "Debes indicar una cantidad numerica valida para subir.",
+                    "Debes indicar una cantidad numérica válida para subir.",
                 )
                 return redirect("partidas:detalle", pk=partida.pk)
 

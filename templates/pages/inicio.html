@@ -6,7 +6,7 @@
 
 {% block barra_superior %}
     {% if user.is_authenticated %}
-        <a class="boton-icono" href="{% url 'nucleo:reglas' %}" aria-label="Reglas del poker">?</a>
+        <a class="boton-icono" href="{% url 'nucleo:reglas' %}" aria-label="Reglas del p&oacute;ker">?</a>
         <a class="bloque-perfil" href="{% url 'usuarios:perfil' %}">
             <span class="avatar" aria-hidden="true">{{ user.username|slice:":1"|upper }}</span>
             <span class="datos-perfil">
@@ -25,7 +25,7 @@
             <a class="boton" href="{% url 'partidas:privada' %}">Partida privada</a>
             <a class="boton" href="{% url 'clasificacion:ranking' %}">Ranking</a>
         {% else %}
-            <a class="boton" href="{% url 'usuarios:iniciar_sesion' %}">Iniciar sesion</a>
+            <a class="boton" href="{% url 'usuarios:iniciar_sesion' %}">Iniciar sesi&oacute;n</a>
             <a class="boton" href="{% url 'usuarios:registro' %}">Registrarse</a>
         {% endif %}
     </div>

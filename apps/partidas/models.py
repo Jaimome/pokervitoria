@@ -61,8 +61,8 @@ class PartidaPoker(models.Model):
         default=EstadoPartida.ESPERANDO,
     )
     maximo_jugadores = models.PositiveSmallIntegerField(default=6)
-    ciega_pequena = models.PositiveIntegerField(default=10)
-    ciega_grande = models.PositiveIntegerField(default=20)
+    ciega_pequena = models.PositiveIntegerField(default=1)
+    ciega_grande = models.PositiveIntegerField(default=2)
     iniciada_en = models.DateTimeField(null=True, blank=True)
     finalizada_en = models.DateTimeField(null=True, blank=True)
     creada_en = models.DateTimeField(auto_now_add=True)
@@ -249,7 +249,24 @@ class CartaPrivada(models.Model):
     def codigo_visible(self) -> str:
         """Devuelve el codigo corto de la carta con notacion en castellano."""
 
-        return self.codigo
+        return formatear_codigo_carta(self.codigo)
+
+
+def formatear_codigo_carta(codigo: str) -> str:
+    """Convierte un codigo interno a un formato visual con simbolos de palo."""
+
+    if not codigo:
+        return ""
+
+    valor = codigo[:-1]
+    palo = codigo[-1]
+    simbolo_palo = {
+        "P": "♠",
+        "C": "♥",
+        "D": "♦",
+        "T": "♣",
+    }.get(palo, palo)
+    return f"{valor}{simbolo_palo}"
 
 
 class AccionMano(models.Model):

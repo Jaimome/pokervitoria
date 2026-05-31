@@ -47,11 +47,11 @@ class VistaPerfil(LoginRequiredMixin, TemplateView):
 
 
 class VistaCerrarSesion(LoginRequiredMixin, View):
-    """Cierra la sesion del usuario y vuelve a la portada publica."""
+    """Cierra la sesión del usuario y vuelve a la portada pública."""
 
     def post(self, request, *args, **kwargs):
         logout(request)
-        messages.success(request, "Sesion cerrada correctamente.")
+        messages.success(request, "Sesión cerrada correctamente.")
         return redirect("nucleo:inicio")
 
 

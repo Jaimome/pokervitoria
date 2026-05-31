@@ -5,9 +5,9 @@
 {% block contenido_clase %}contenido-centrado{% endblock %}
 
 {% block barra_superior %}
-    <form method="post" action="{% url 'partidas:cancelar_busqueda' %}" data-confirmacion="¿Seguro que quieres cancelar la busqueda de partida?">
+    <form method="post" action="{% url 'partidas:cancelar_busqueda' %}" data-confirmacion="&iquest;Seguro que quieres cancelar la b&uacute;squeda de partida?">
         {% csrf_token %}
-        <button class="boton-icono boton-confirmacion" type="submit" aria-label="Cancelar busqueda">←</button>
+        <button class="boton-icono boton-confirmacion" type="submit" aria-label="Cancelar b&uacute;squeda">&larr;</button>
     </form>
     <div></div>
 {% endblock %}
@@ -15,24 +15,41 @@
 {% block content %}
     <div class="apilado texto-centro">
         <h1 class="titulo-seccion">Buscando partida</h1>
-        <p class="loader-texto" id="loader-busqueda">··●</p>
-        <p class="texto-normal">{{ usuarios_conectados }} jugadores conectados</p>
+        <p class="loader-texto" id="loader-busqueda">&middot;&middot;&#9679;</p>
+        <p class="texto-normal" id="jugadores-conectados">{{ usuarios_conectados }} jugadores conectados</p>
     </div>
 {% endblock %}
 
 {% block scripts %}
     <script>
         (() => {
-            const estados = ["··●", "●··", "·●·"];
+            const estados = ["\u00b7\u00b7\u25cf", "\u25cf\u00b7\u00b7", "\u00b7\u25cf\u00b7"];
             const nodo = document.getElementById("loader-busqueda");
+            const contador = document.getElementById("jugadores-conectados");
             let indice = 0;
             window.setInterval(() => {
                 indice = (indice + 1) % estados.length;
                 nodo.textContent = estados[indice];
             }, 450);
+
             window.setInterval(() => {
-                window.location.reload();
-            }, 2500);
+                fetch("{% url 'partidas:estado_busqueda' %}", {
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.partida_encontrada && data.url) {
+                            window.location.href = data.url;
+                            return;
+                        }
+                        if (typeof data.usuarios_conectados !== "undefined") {
+                            contador.textContent = `${data.usuarios_conectados} jugadores conectados`;
+                        }
+                    })
+                    .catch(() => {});
+            }, 2000);
         })();
     </script>
 {% endblock %}

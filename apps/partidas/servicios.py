@@ -24,11 +24,11 @@ ORDEN_FASES = [EstadoMano.PREFLOP, EstadoMano.FLOP, EstadoMano.TURN, EstadoMano.
 ALFABETO_CODIGO_PRIVADO = string.ascii_uppercase + string.digits
 LONGITUD_CODIGO_PRIVADO = 10
 COMPRA_MAXIMA_PARTIDA = 200
-SEGUNDOS_TURNO = 30
+SEGUNDOS_TURNO = 60
 
 
 def generar_codigo_privado_unico() -> str:
-    """Genera un codigo alfanumerico unico para una partida privada."""
+    """Genera un código alfanumérico único para una partida privada."""
 
     while True:
         codigo = "".join(
@@ -40,7 +40,7 @@ def generar_codigo_privado_unico() -> str:
 
 
 def normalizar_codigo_privado(codigo: str) -> str:
-    """Limpia y normaliza un codigo privado editable por el usuario."""
+    """Limpia y normaliza un código privado editable por el usuario."""
 
     return "".join(caracter for caracter in codigo.upper().strip() if caracter.isalnum())
 
@@ -104,19 +104,21 @@ def unir_usuario_a_partida(
 
 
 def crear_partida_privada(usuario, codigo_privado: str) -> PartidaPoker:
-    """Crea una partida privada con codigo editable por el usuario."""
+    """Crea una partida privada con código editable por el usuario."""
 
     codigo_normalizado = normalizar_codigo_privado(codigo_privado)
     if not codigo_normalizado:
-        raise ValueError("Debes indicar un codigo valido para la partida privada.")
+        raise ValueError("Debes indicar un código válido para la partida privada.")
     if PartidaPoker.objects.filter(codigo_privado=codigo_normalizado).exists():
-        raise ValueError("Ya existe una partida privada con ese codigo.")
+        raise ValueError("Ya existe una partida privada con ese código.")
 
     return PartidaPoker.objects.create(
         nombre=f"Privada {codigo_normalizado}",
         creador=usuario,
         es_privada=True,
         codigo_privado=codigo_normalizado,
+        ciega_pequena=1,
+        ciega_grande=2,
     )
 
 
@@ -152,9 +154,11 @@ def iniciar_o_consultar_busqueda_publica(usuario):
         return None
 
     partida = PartidaPoker.objects.create(
-        nombre=f"Partida publica {timezone.now().strftime('%H%M%S')}",
+        nombre=f"Partida pública {timezone.now().strftime('%H%M%S')}",
         creador=pareja.usuario,
         es_privada=False,
+        ciega_pequena=1,
+        ciega_grande=2,
     )
     unir_usuario_a_partida(partida, pareja.usuario)
     unir_usuario_a_partida(partida, usuario)

@@ -1,3 +1,4 @@
+{% load texto %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -65,6 +66,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            position: relative;
         }
 
         .pantalla {
@@ -93,6 +95,12 @@
             flex-direction: column;
             overflow-y: auto;
             gap: 1.25rem;
+        }
+
+        .panel-formulario-central {
+            display: grid;
+            gap: 1.1rem;
+            margin: auto 0;
         }
 
         .contenido-centrado {
@@ -213,7 +221,6 @@
         }
 
         .zona-errores {
-            min-height: 6.2rem;
             border: 1px dashed rgba(214, 154, 144, 0.7);
             background: rgba(248, 225, 220, 0.35);
             border-radius: 1.15rem;
@@ -222,9 +229,21 @@
             align-content: start;
             gap: 0.45rem;
         }
+        
+        .zona-errores .texto-normal {
+            color: #a24a40;
+            font-weight: 700;
+        }
 
-        .zona-errores:empty {
-            opacity: 0.55;
+        .mensajes-flotantes {
+            position: absolute;
+            top: 5.5rem;
+            left: 1.5rem;
+            right: 1.5rem;
+            display: grid;
+            gap: 0.7rem;
+            pointer-events: none;
+            z-index: 8;
         }
 
         .mensaje-sistema {
@@ -233,12 +252,19 @@
             border: 1px solid rgba(124, 164, 136, 0.4);
             background: var(--exito);
             color: #284630;
+            transition: opacity 0.25s ease, transform 0.25s ease;
         }
 
         .mensaje-sistema.error {
             border-color: var(--error-borde);
             background: var(--error);
             color: #7a3c33;
+            font-weight: 700;
+        }
+
+        .mensaje-sistema.ocultando {
+            opacity: 0;
+            transform: translateY(-0.35rem);
         }
 
         .bloque-perfil,
@@ -433,7 +459,7 @@
 
         .reloj-turno {
             position: sticky;
-            margin-left: auto;
+            margin: 0 auto;
             bottom: 0;
             width: fit-content;
             padding: 0.6rem 0.85rem;
@@ -441,6 +467,18 @@
             background: var(--texto);
             color: white;
             font-weight: 700;
+        }
+
+        .accion-destruction,
+        .accion-destruccion {
+            background: #d27d72;
+            border-color: transparent;
+            color: white;
+        }
+
+        .accion-destruction:hover,
+        .accion-destruccion:hover {
+            background: #b96357;
         }
 
         .loader-texto {
@@ -509,14 +547,16 @@
             <div class="barra-superior">
                 {% block barra_superior %}{% endblock %}
             </div>
-            <main class="contenido-scroll {% block contenido_clase %}{% endblock %}">
-                {% if messages %}
+            {% if messages %}
+                <div class="mensajes-flotantes">
                     {% for message in messages %}
-                        <div class="mensaje-sistema{% if message.tags == 'error' %} error{% endif %}">
-                            {{ message }}
+                        <div class="mensaje-sistema{% if message.tags == 'error' %} error{% endif %}" data-mensaje-temporal>
+                            {{ message|corregir_mojibake }}
                         </div>
                     {% endfor %}
-                {% endif %}
+                </div>
+            {% endif %}
+            <main class="contenido-scroll {% block contenido_clase %}{% endblock %}">
                 {% block content %}{% endblock %}
             </main>
         </div>
@@ -610,6 +650,15 @@
                 } catch (error) {
                     botonCopiar.textContent = "Error";
                 }
+            });
+
+            document.querySelectorAll("[data-mensaje-temporal]").forEach((mensaje) => {
+                window.setTimeout(() => {
+                    mensaje.classList.add("ocultando");
+                    window.setTimeout(() => {
+                        mensaje.remove();
+                    }, 260);
+                }, 3200);
             });
         })();
     </script>
