@@ -172,23 +172,3 @@ python manage.py check
 python manage.py migrate
 python manage.py test apps.usuarios apps.partidas
 ```
-
-## Estado del proyecto
-
-La version actual ya cubre el flujo principal de una partida online basica:
-
-- usuarios persistentes
-- economia interna de fichas
-- partidas publicas y privadas
-- acciones principales de poker
-- evaluacion de manos
-- tiempo real en mesa
-- interfaz vertical adaptada a los bocetos de la aplicacion
-
-Los siguientes bloques previstos son:
-
-- encadenar varias manos dentro de una misma partida
-- rotar posiciones y ciegas entre manos
-- persistir historial de resultados
-- ampliar auditoria funcional
-- reforzar pruebas automaticas del motor de juego
