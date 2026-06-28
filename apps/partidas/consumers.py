@@ -2,7 +2,7 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
 
 class ConsumidorPartida(AsyncJsonWebsocketConsumer):
-    """Canal websocket minimo para refrescar el detalle de una partida en vivo."""
+    """Canal websocket para refrescar el detalle de una partida en vivo."""
 
     async def connect(self):
         partida_id = str(self.scope["url_route"]["kwargs"]["partida_id"])

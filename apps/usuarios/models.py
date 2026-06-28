@@ -3,12 +3,7 @@ from django.db import models
 
 
 class Usuario(AbstractUser):
-    """
-    Modelo base de usuario del proyecto.
-
-    Lo definimos desde el principio para evitar sustituir el modelo de usuario
-    de Django a mitad del desarrollo.
-    """
+    """Modelo base de usuario del proyecto."""
 
     saldo_total = models.PositiveIntegerField(default=2000)
 

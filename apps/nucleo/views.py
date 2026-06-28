@@ -5,7 +5,7 @@ from django.views.generic import TemplateView
 
 
 def contar_usuarios_conectados() -> int:
-    """Cuenta usuarios autenticados con una sesion todavia activa."""
+    """Cuenta usuarios autenticados con una sesión todavía activa."""
 
     ahora = timezone.now()
     sesiones = Session.objects.filter(expire_date__gte=ahora)
@@ -19,7 +19,7 @@ def contar_usuarios_conectados() -> int:
 
 
 class VistaInicio(TemplateView):
-    """Pantalla de inicio publica o privada segun el estado de sesion."""
+    """Pantalla de inicio pública o privada según el estado de sesión."""
 
     template_name = "pages/inicio.html"
 
@@ -30,6 +30,6 @@ class VistaInicio(TemplateView):
 
 
 class VistaReglasPoker(LoginRequiredMixin, TemplateView):
-    """Pantalla informativa con reglas basicas de Texas Hold'em."""
+    """Pantalla informativa con reglas básicas de Texas Hold'em."""
 
     template_name = "pages/reglas.html"

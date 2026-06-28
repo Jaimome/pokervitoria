@@ -77,3 +77,11 @@ python manage.py runserver 127.0.0.1:8000
 ```text
 http://127.0.0.1:8000/
 ```
+
+## Acceso en produccion
+
+La version desplegada del juego puede abrirse directamente en:
+
+`www.pokervitoria.es`
+
+

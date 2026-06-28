@@ -5,7 +5,7 @@ from apps.usuarios.models import Usuario
 
 
 class FormularioRegistroUsuario(UserCreationForm):
-    """Formulario minimo de registro para la primera version del proyecto."""
+    """Formulario básico de registro."""
 
     username = forms.CharField(label="Nombre de usuario")
     email = forms.EmailField(label="Correo electrónico")

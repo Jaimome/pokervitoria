@@ -137,7 +137,7 @@ class VistaPartidaPrivada(LoginRequiredMixin, TemplateView):
 
 
 class VistaBuscarPartida(LoginRequiredMixin, TemplateView):
-    """Pantalla de espera y emparejamiento publico simple."""
+    """Pantalla de espera y emparejamiento público simple."""
 
     template_name = "partidas/buscar.html"
 
@@ -191,7 +191,7 @@ class VistaCancelarBusquedaPartida(LoginRequiredMixin, View):
 
 
 class VistaDetallePartida(LoginRequiredMixin, DetailView):
-    """Muestra la informacion principal de una partida concreta."""
+    """Muestra la información principal de una partida concreta."""
 
     model = PartidaPoker
     template_name = "partidas/detalle.html"
@@ -288,7 +288,7 @@ class VistaDetallePartida(LoginRequiredMixin, DetailView):
 
 
 class VistaUnirsePartida(LoginRequiredMixin, View):
-    """Anade al usuario actual a una partida si hay un asiento disponible."""
+    """Añade al usuario actual a una partida si hay un asiento disponible."""
 
     def post(self, request, *args, **kwargs):
         partida = PartidaPoker.objects.get(pk=kwargs["pk"])
@@ -333,7 +333,7 @@ class VistaIniciarPartida(LoginRequiredMixin, View):
 
 
 class VistaAccionPartida(LoginRequiredMixin, View):
-    """Procesa una accion del jugador actual sobre la mano activa."""
+    """Procesa una acción del jugador actual sobre la mano activa."""
 
     def post(self, request, *args, **kwargs):
         try:

@@ -32,12 +32,12 @@ NOMBRE_CATEGORIAS = {
 
 def evaluar_mejor_mano(cartas: list[str]) -> dict:
     """
-    Evalua la mejor mano posible a partir de 7 cartas de Texas Hold'em.
+    Evalúa la mejor mano posible a partir de 7 cartas de Texas Hold'em.
 
     Devuelve un diccionario con:
     - `rango`: tupla comparable para desempates
-    - `nombre`: descripcion legible de la categoria
-    - `cartas`: combinacion ganadora de 5 cartas
+    - `nombre`: descripción legible de la categoría
+    - `cartas`: combinación ganadora de 5 cartas
     """
 
     if len(cartas) < 5:
@@ -54,7 +54,7 @@ def evaluar_mejor_mano(cartas: list[str]) -> dict:
 
 def comparar_manos(cartas_por_jugador: dict) -> list[dict]:
     """
-    Evalua varias manos y devuelve los mejores resultados empatados o ganadores.
+    Evalúa varias manos y devuelve los mejores resultados empatados o ganadores.
     """
 
     resultados = []

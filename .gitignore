@@ -24,7 +24,3 @@ staticfiles/
 .vscode/
 Thumbs.db
 .DS_Store
-
-# Local documentation
-AGENTS.md
-credenciales_prueba.md

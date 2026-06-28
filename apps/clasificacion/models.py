@@ -4,9 +4,9 @@ from django.db import models
 
 class EstadisticasJugador(models.Model):
     """
-    Estadisticas agregadas para ranking y perfil.
+    Estadísticas avanzadas para ranking y perfil.
 
-    Estos contadores podran recalcularse mas adelante a partir de las partidas
+    Estos contadores podrán recalcularse mas adelante a partir de las partidas
     finalizadas si fuera necesario.
     """
 

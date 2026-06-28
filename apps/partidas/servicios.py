@@ -269,7 +269,7 @@ def ejecutar_accion(
     tipo: str,
     objetivo_subida: int | None = None,
 ) -> None:
-    """Ejecuta una accion de la ronda actual y actualiza turno o fase."""
+    """Ejecuta una acción de la ronda actual y actualiza turno o fase."""
 
     if mano.estado not in ORDEN_FASES:
         raise ValueError("La mano actual no admite acciones.")

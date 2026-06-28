@@ -3,7 +3,7 @@ from django.db import models
 
 
 class EventoAuditoria(models.Model):
-    """Registro generico de eventos para seguridad y trazabilidad del juego."""
+    """Registro de eventos para seguridad y trazabilidad del juego."""
 
     categoria = models.CharField(max_length=50)
     accion = models.CharField(max_length=100)

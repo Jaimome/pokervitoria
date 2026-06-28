@@ -40,8 +40,8 @@ class PartidaPoker(models.Model):
     """
     Una instancia de partida representa el ciclo de vida de una mesa online.
 
-    Aqui guardamos el estado general de la partida. Las rondas de apuestas y la
-    resolucion detallada de cartas iran despues en el motor de reglas.
+    Aquí guardamos el estado general de la partida. Las rondas de apuestas y la
+    resolución detallada de cartas se encuentran en el motor de reglas.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -104,7 +104,7 @@ class PartidaPoker(models.Model):
 
 
 class ParticipacionPartida(models.Model):
-    """Relacion entre un usuario y una partida concreta."""
+    """Relación entre un usuario y una partida concreta."""
 
     partida = models.ForeignKey(
         PartidaPoker,
@@ -247,13 +247,13 @@ class CartaPrivada(models.Model):
 
     @property
     def codigo_visible(self) -> str:
-        """Devuelve el codigo corto de la carta con notacion en castellano."""
+        """Devuelve el código corto de la carta con notación en castellano."""
 
         return formatear_codigo_carta(self.codigo)
 
 
 def formatear_codigo_carta(codigo: str) -> str:
-    """Convierte un codigo interno a un formato visual con simbolos de palo."""
+    """Convierte el código interno a un formato visual con símbolos de palo."""
 
     if not codigo:
         return ""
@@ -270,7 +270,7 @@ def formatear_codigo_carta(codigo: str) -> str:
 
 
 class AccionMano(models.Model):
-    """Accion realizada por un jugador durante una mano."""
+    """Acción realizada por un jugador durante una mano."""
 
     mano = models.ForeignKey(
         ManoPoker,
@@ -305,7 +305,7 @@ class AccionMano(models.Model):
 
 
 class SolicitudPartidaPublica(models.Model):
-    """Representa a un usuario en cola para buscar una partida publica."""
+    """Representa a un usuario en cola para buscar una partida pública."""
 
     usuario = models.OneToOneField(
         settings.AUTH_USER_MODEL,
